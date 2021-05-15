@@ -14,20 +14,11 @@ class UserList extends Component
     
     public function render()
     {
-        // $userAnswers = DB::table('users')
-            // ->select('users.*', 'surveys.*')
-            // ->join('responses', 'users.id', '=', 'responses.user_id')
-            // ->join('questions', 'responses.question_id', '=', 'questions.id')
-            // ->leftJoin('surveys', 'responses.id', '=', 'surveys.id')
-            // ->groupBy('surveys.id')
-            // ->groupBy('users.id')
-            // ->get();
-            // ->groupBy('name');
-        // $users = User::with('responses')->get();
         $users = User::with(['responses' => function ($q) {
             $q->groupBy('user_id');
             $q->groupBy('survey_id');
         }])
+        ->whereNotIn('email', config('settings.admin_emails'))
         ->paginate(8);
         
         return view('livewire.user-list', [
