@@ -27,7 +27,8 @@ class UserList extends Component
         $users = User::with(['responses' => function ($q) {
             $q->groupBy('user_id');
             $q->groupBy('survey_id');
-        }])->paginate(8);
+        }])
+        ->paginate(8);
         
         return view('livewire.user-list', [
             'users' => $users,
