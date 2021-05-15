@@ -118,7 +118,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithMapping, WithEvent
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
                         $firstColumn = $alphabet . '1';
                         foreach ($question['options'] as $iOption => $option) {
-                            if ($iOption === 0) $alphabet++;
+                            if ($iOption !== 0) $alphabet++;
                         }
                         $lastColumn = $alphabet . '1';
 
