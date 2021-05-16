@@ -3,10 +3,14 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+
 use App\Models\Survey;
 use App\Models\Question;
 use App\Models\Option;
-use Livewire\WithPagination;
+use App\Models\Response;
+use App\Models\SurveySession;
+
 use App\Actions\Export\ExportSurvey;
 use Excel;
 
@@ -19,19 +23,18 @@ class ManageSurvey extends Component
 
     public $title;
     public $description;
+    public $singleSurvey;
     public $questions = [];
 
-    public $typeOptions = [];
+    public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea'];
     public $isOpen = 0;
 
-    // public function mount() 
-    // {
-    // }
-    
+    public $responseOptions = ['static', 'sum', 'average'];
+    public $responses = [];
+
     public function render()
     {
         $this->surveys = Survey::with('questions.options')->orderBy('created_at', 'desc')->paginate(8);
-        $this->typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea'];
         
         return view('livewire.manage-survey', [
             'surveys' => $this->surveys,
@@ -80,6 +83,27 @@ class ManageSurvey extends Component
         }
     }
 
+    public function changeSingleSurvey() {
+        if ($this->singleSurvey) {
+            $this->questions[0]['type'] = 'text';
+            $this->addResponse();
+        } else {
+            $this->responses = [];
+        }
+    }
+
+    public function addResponse() {
+        $this->responses[] = [
+            'content' => '',
+            'note' => '',
+        ];
+    }
+
+    public function deleteResponse($iResponse) {
+        unset($this->responses[$iResponse]);
+        array_values($this->responses);
+    }
+
     public function addOption($iQuestion) {
         $this->questions[$iQuestion]['options'][] = ['value' => ''];
     }
@@ -93,11 +117,7 @@ class ManageSurvey extends Component
         $this->title = '';
         $this->description = '';
         $this->questions = [];
-        $this->questions[] = [
-            'content' => '',
-            'type' => 'text',
-            'options' => [],
-        ];
+        $this->addQuestion();
     }
 
     public function store()
@@ -108,21 +128,23 @@ class ManageSurvey extends Component
         $dataSurvey = [
             'title' => $this->title,
             'description' => $this->description,
+            'single_survey' => $this->singleSurvey,
         ];
-        // foreach ($this->questions as $iQuestion => $question) {
-        //     $this->questions[$iQuestion]['options'] = implode('|', $question['options']);
-        // }
 
         \DB::beginTransaction();
         try {
             $survey = Survey::updateOrCreate(['id' => $this->surveyId], $dataSurvey);
-            foreach ($this->questions as $question) {
+            foreach ($this->questions as $iQuestion => $question) {
                 $currentQuestion = isset($question['id']) && $question['id'] ? Question::find($question['id']) : new Question;
                 $currentQuestion->content = $question['content']; 
                 $currentQuestion->type = $question['type'];
 
                 // Save or Update Question
                 $currentQuestion = $survey->questions()->save($currentQuestion);
+
+                // get First QuestionId for insert responses static
+                if ($iQuestion == 0) $firstQuestionId = $currentQuestion->id;
+
                 // Delete all options
                 $currentQuestion->options()->delete();
                 foreach ($question['options'] as $option) {
@@ -132,7 +154,10 @@ class ManageSurvey extends Component
                     $options = $currentQuestion->options()->save($currentOption);
                 }
             }
-            // $questions = $survey->questions()->createMany($this->questions);
+
+            // Insert responses static
+            if ($this->singleSurvey) $this->storeResponses($survey->id, $firstQuestionId);
+
             session()->flash('message', $this->surveyId ? 'Survey updated successfully.' : 'Survey created successfully.');
             $this->closeModal();
             $this->resetInputFields();
@@ -140,23 +165,49 @@ class ManageSurvey extends Component
 
             \DB::commit();
         } catch (\Throwable $th) {
-            session()->flash('message', $this->surveyId ? $th : 'Survey created failed.');
+            session()->flash('message', $th);
             \DB::rollback();
+        }
+    }
+
+    private function storeResponses($surveyId, $questionId) {
+        foreach ($this->responses as $response) {
+            $sessionModel = isset($response['survey_session_id']) ? SurveySession::find($response['survey_session_id']) : new SurveySession;
+            $responseModel = isset($response['id']) ? Response::find($response['id']) : new Response;
+
+            $sessionModel->user_id = auth()->user()->id;
+            $sessionModel->survey_id = $surveyId;
+            $sessionModel->save();
+
+            $responseModel->user_id = auth()->user()->id;
+            $responseModel->question_id = $questionId;
+            $responseModel->survey_id = $surveyId;
+            $responseModel->survey_session_id = $sessionModel->id;
+            $responseModel->content = $response['content'];
+            $responseModel->note = $response['note'] ? : 'static';
+            $responseModel->save();
         }
     }
 
     public function edit($id)
     {
-        $survey = Survey::with('questions.options')->findOrFail($id);
-        $survey = $survey->toArray();
-        $this->surveyId = $id;
+        $survey = Survey::with(['questions.options', 'responses' => function ($q) {
+            $q->whereNotNull('note');
+        }])
+        ->findOrFail($id)
+        ->toArray();
+        
         $this->title = $survey['title'];
         $this->description = $survey['description'];
+        $this->responses = $survey['responses'];
+        $this->singleSurvey = !!$survey['single_survey'];
+        
         $this->questions = [];
+        $this->surveyId = $id;
 
         foreach ($survey['questions'] as $question) {
             $options = [];
-            // dd($question);
+
             if (count($question['options'])) {
                 foreach ($question['options'] as $option) {
                     $options[] = [
@@ -172,7 +223,8 @@ class ManageSurvey extends Component
                 'type' => $question['type'],
                 'options' => $options,
             ];
-        } 
+        }
+
         $this->openModal();
     }
 

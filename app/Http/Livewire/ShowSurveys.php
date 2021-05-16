@@ -3,10 +3,13 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\WithPagination;
+
 use App\Models\Survey;
 use App\Models\Response;
-use Livewire\WithPagination;
 use App\Models\User;
+use App\Models\SurveySession;
+
 use Illuminate\Support\Facades\Auth;
 
 class ShowSurveys extends Component
@@ -15,9 +18,13 @@ class ShowSurveys extends Component
 
     protected $surveys;
     public $currentSurvey;
+    public $questions = [];
     public $responses = [];
     public $isOpen;
     public $user;
+
+    public $indexSession = 0;
+    public $titleSingleSurvey = '';
 
     public function mount(?User $user) 
     {
@@ -27,12 +34,14 @@ class ShowSurveys extends Component
     public function render()
     {
         if ($this->user) {
+            // Auth
             $this->surveys = Survey::with(['responses' => function($q) {
-                $q->whereUserId($this->user->id);
+                // $q->whereUserId($this->user->id);
             }, 'questions.options', 'questions.responses' => function($q) {
                 $q->whereUserId($this->user->id);
-            }])->orderBy('created_at', 'desc')->paginate(8);
+            }, 'sessions'])->orderBy('created_at', 'desc')->paginate(8);
         } else {
+            // Guest
             $this->surveys = Survey::orderBy('created_at', 'desc')->paginate(8);
         }
 
@@ -41,23 +50,36 @@ class ShowSurveys extends Component
         ]);
     }
 
-    public function startSurvey($survey) {
-        $questions = $survey['questions'];
+    public function startSurvey($survey, $index = 0) {
         $this->currentSurvey = $survey;
+        $this->questions = $survey['questions'];
         $this->responses = [];
+        $this->titleSingleSurvey = '';
 
-        $this->generateResponse($questions);
+        // Edit if single session
+        if ($survey['single_survey']) $this->generateResponse($index);
         $this->openModal();
     }
 
-    public function generateResponse($questions) {
-        foreach ($questions as $question) {
+    public function generateResponse($index) {
+        $this->indexSession = $index+1;
+        $this->titleSingleSurvey = $this->currentSurvey['responses'][$index]['content'];
+        $this->questions = array_slice($this->currentSurvey['questions'],1);
+
+        $sessionId = $this->currentSurvey['sessions'][$index]['id'];
+        $_responses = Response::whereSurveySessionId($sessionId)->get()->toArray();
+
+        foreach ($this->questions as $iQuestion => $question) {
+            $responses = array_values(array_filter($_responses, function ($response) use ($question) { 
+                return $response['question_id'] === $question['id']; 
+            }));
+
             if ($question['type'] === 'checkbox') {
                 $this->responses[$question['id']] =
-                    $question['responses'] ? array_column($question['responses'], 'content') : [];
+                    $responses ? array_column($responses, 'content') : [];
             } else {
                 $this->responses[$question['id']] = 
-                    $question['responses'] ? $question['responses'][0]['content'] : '';
+                    $responses ? $responses[0]['content'] : '';
             }
         }
     }
@@ -76,16 +98,38 @@ class ShowSurveys extends Component
     {
         \DB::beginTransaction();
         try {
-            $surveyId = $this->currentSurvey['id'];
+            $survey = $this->currentSurvey;
+            $isNotFinish = $this->indexSession < count($survey['sessions']);
             $userId = $this->user->id;
 
-            // delete all reponse by questionId and userId
-            Response::
-                whereHas('question', function($q) use ($surveyId){
-                    $q->whereSurveyId($surveyId);
-                })
-                ->whereUserId($userId)
-                ->delete();
+            // Edit response if single session
+            if ($survey['single_survey']) {
+                // delete responses by survey session id
+                $sessionId = $survey['sessions'][$this->indexSession-1]['id'];
+                SurveySession::find($sessionId)->update(['user_id' => $userId]);
+
+                Response::
+                    whereHas('question', function($q) use ($survey){
+                        $q->whereSurveyId($survey['id']);
+                    })
+                    ->whereSurveySessionId($sessionId)
+                    ->update(['user_id' => $userId]);
+
+                Response::
+                    whereHas('question', function($q) use ($survey){
+                        $q->whereSurveyId($survey['id']);
+                    })
+                    ->whereSurveySessionId($sessionId)
+                    ->whereNull('note')
+                    ->delete();
+            } else {
+                $newSession = new SurveySession;
+                $newSession->survey_id = $survey['id'];
+                $newSession->user_id = $userId;
+                $newSession->save();
+    
+                $sessionId = $newSession->id;
+            }
 
             foreach ($this->responses as $questionId => $content) {
                 // content cant be null
@@ -96,7 +140,8 @@ class ShowSurveys extends Component
                             $response = new Response;
                             $response->user_id = $userId;
                             $response->question_id = $questionId;
-                            $response->survey_id = $surveyId;
+                            $response->survey_id = $survey['id'];
+                            $response->survey_session_id = $sessionId;
                             $response->content = $value;
         
                             $response->save();
@@ -105,7 +150,8 @@ class ShowSurveys extends Component
                         $response = new Response;
                         $response->user_id = $userId;
                         $response->question_id = $questionId;
-                        $response->survey_id = $surveyId;
+                        $response->survey_id = $survey['id'];
+                        $response->survey_session_id = $sessionId;
                         $response->content = $content;
     
                         $response->save();
@@ -113,15 +159,20 @@ class ShowSurveys extends Component
                 }
             }
 
-            session()->flash('message', 'Response updated successfully');
-            $this->closeModal();
-            $this->mount($this->user);
-
             \DB::commit();
+
+            if ($survey['single_survey'] && $isNotFinish) {
+                $this->closeModal();
+                $this->startSurvey($survey, $this->indexSession);
+            } else {
+                session()->flash('message', 'Response updated successfully');
+                $this->closeModal();
+                $this->mount($this->user);
+            }
         } catch (\Throwable $th) {
+            \DB::rollback();
             $this->closeModal();
             session()->flash('message', $th . 'Survey created failed.');
-            \DB::rollback();
         }
     }
 }

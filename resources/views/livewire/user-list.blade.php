@@ -47,7 +47,7 @@
                                 <td class="px-5 py-5 bg-white text-sm @if (!$loop->last) border-gray-200 border-b @endif text-right">
                                     <div class="inline-block whitespace-no-wrap">
                                         <!-- <button wire:click.prevent="edit({{ $user->id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</button> -->
-                                        <a href="{{ route('user.surveys', $user->id) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</a>
+                                        <a href="{{ route('user.surveys', $user->id) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Show</a>
                                     </div>
                                 </td>
                             </tr>

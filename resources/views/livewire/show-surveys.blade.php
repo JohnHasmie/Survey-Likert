@@ -15,9 +15,13 @@
         </div>
     @endif
     @if ($surveys && count($surveys)>0)
-        @foreach($surveys as $survey) 
+        @foreach($surveys as $survey)
+            @php 
+                $onlyEdit = $survey->single_survey && $user && count($survey->sessions) > 0 && ($survey->sessions[0]->user_id === auth()->user()->id || auth()->user()->isAdmin()); 
+                $hasAnswered = $survey->single_survey && $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id !== 1;
+            @endphp 
             <div class="inline-block m-5">
-                <div class="relative px-8 py-4 {{ count($survey->responses) && $user ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
+                <div class="relative px-8 py-4 {{ $hasAnswered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
                     <!-- <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/152_Google_Play-512.png" class="logo-area h-4"> -->
                     <h3 class="absolute w-44 break-all py-2 text-xl font-bold font-mono">{{ $survey->title }}</h3>
                     <div class="absolute bottom-5 w-full pr-12">
@@ -28,8 +32,8 @@
                             </span>
                         </div>
                         @auth
-                            <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ count($survey->responses) ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700 ' }} text-white font-bold py-2 px-4 rounded">
-                                <span class="text-center">{{ count($survey->responses) ? 'Edit Survey' : 'Start Survey' }}</span>
+                            <button @if (!$onlyEdit && $hasAnswered) disabled @endif wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $onlyEdit ? 'bg-green-500 hover:bg-green-700 ' : ($hasAnswered ? 'bg-gray-500 hover:bg-gray-700' : 'bg-blue-500 hover:bg-blue-700') }} text-white font-bold py-2 px-4 rounded">
+                                <span class="text-center">{{ $onlyEdit ? 'Edit Survey' : ($hasAnswered ? 'Answered' : 'Start Survey') }}</span>
                             </button>
                         @else
                             <a href="{{ route('login') }}" class="w-48 justify-center inline-flex text-white bg-yellow-500 font-bold py-2 px-4 rounded">Log in to Survey</a>
@@ -58,8 +62,14 @@
                                 </span>
                             </button>
                         </div>
+                        @if($titleSingleSurvey)
+                            <div class="py-2 text-center text-xl">
+                                {{ $titleSingleSurvey }}
+                                <span class="text-sm">({{ $indexSession }}/{{ count($currentSurvey['sessions']) }} Steps)</span>
+                            </div>
+                        @endif
                         <form class="max-w-xl m-4 p-4 rounded">
-                            @foreach($currentSurvey['questions'] as $question)
+                            @foreach($questions as $question)
                                 <div class="mb-5">
                                     <label class="font-bold mb-1 block text-sm capitalize text-gray-600" for="cus_email">{{ $question['content'] }}</label>
                                     @if($question['type'] === 'text')
@@ -106,7 +116,9 @@
                         </form>
                         <div class="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                             <span class="flex w-full sm:ml-3 sm:w-auto">
-                                <button wire:click.prevent="store()" class="px-4 py-1 font-light tracking-wider bg-blue-500 hover:bg-blue-700 text-white rounded font-bold" type="submit">Save</button>
+                                <button wire:click.prevent="store()" class="px-4 py-1 font-light tracking-wider bg-blue-500 hover:bg-blue-700 text-white rounded font-bold" type="submit">
+                                    Save
+                                </button>
                             </span>
                             <span class="mt-3 flex w-full sm:mt-0 sm:w-auto">
                                 <button wire:click="closeModal()" class="px-4 py-1 font-light tracking-wider bg-white hover:bg-gray-200 border border-gray-300 text-gray-500 font-bold rounded" type="submit">Cancel</button>

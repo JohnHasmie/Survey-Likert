@@ -18,6 +18,7 @@ class CreateResponsesTable extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('question_id')->constrained()->onDelete('cascade');
             $table->foreignId('survey_id')->constrained()->onDelete('cascade');
+            $table->foreignId('survey_session_id')->constrained()->onDelete('cascade');
             $table->string('content');
             $table->text('note')->nullable();
             $table->timestamps();
@@ -35,6 +36,7 @@ class CreateResponsesTable extends Migration
             $table->dropForeign(['user_id']);
             $table->dropForeign(['question_id']);
             $table->dropForeign(['survey_id']);
+            $table->dropForeign(['survey_session_id']);
         });
         Schema::dropIfExists('responses');
     }

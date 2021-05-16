@@ -17,6 +17,7 @@ class CreateSurveysTable extends Migration
             $table->id();
             $table->string('title', 100);
             $table->string('description');
+            $table->boolean('single_survey')->default(0);
             $table->timestamps();
         });
     }

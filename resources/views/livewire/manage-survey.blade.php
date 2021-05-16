@@ -86,7 +86,7 @@
                                         Survey Detail
                                     </span>
                                     <div class="flex flex-wrap -mx-3 mb-6">
-                                        <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                                        <div class="w-full md:w-1/3 px-3 mb-6 md:mb-0">
                                             <label for="titleInput" class="block text-gray-700 text-sm font-bold mb-2">Title</label>
                                             <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="titleInput" wire:model="title">
                                             @error('title') <span class="text-red-500">{{ $message }}</span>@enderror
@@ -96,7 +96,49 @@
                                             <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="descriptionInput" wire:model="description">
                                             @error('description') <span class="text-red-500">{{ $message }}</span>@enderror
                                         </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
+                                            <label class="inline-flex items-center mt-11">
+                                                <input value="1" wire:change="changeSingleSurvey" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Single Survey</span>
+                                            </label>
+                                        </div>
                                     </div>
+
+                                    @if($singleSurvey)
+                                        <span class="text-xs mb-3 font-semibold inline-block py-1 px-2 uppercase rounded text-white bg-blue-900 uppercase last:mr-0 mr-1">
+                                            {{ $questions[0]['content'] }}
+                                        </span>
+                                        <div class="flex flex-wrap -mx-3 mb-3">
+                                            @foreach($responses as $iResponse => $response)
+                                                <div class="w-full md:w-1/2 px-3 mb-3">
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Response {{ $iResponse+1 }}</label>
+                                                    <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="responses.{{$iResponse}}.content">
+                                                    @error('title') <span class="text-red-500">{{ $message }}</span>@enderror
+                                                </div>
+                                                <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Type</label>
+                                                    <select wire:model="responses.{{$iResponse}}.note" class="w-full leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
+                                                        @foreach($responseOptions as $responseOption) 
+                                                            <option value="{{ $responseOption }}" class="py-1 capitalize">{{ $responseOption }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('type') <span class="text-red-500">{{ $message }}</span>@enderror
+                                                </div>
+                                                @if(count($responses) > 1)
+                                                <div class="w-full md:w-1/5 px-3 md:mb-0">
+                                                    <button wire:click.prevent="deleteResponse({{ $iResponse }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                        <div class="mb-5">
+                                            <button wire:click.prevent="addResponse" type="button" class="inline-flex bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                                Add Response
+                                            </button>
+                                        </div>
+                                    @endif
 
                                     <span class="text-xs mt-2 mb-3 font-semibold inline-block py-1 px-2 uppercase rounded text-white bg-blue-900 uppercase last:mr-0 mr-1">
                                         Question Detail
@@ -104,13 +146,13 @@
                                     @foreach($questions as $iQuestion => $question) 
                                         <div class="flex flex-wrap -mx-3 mb-6">
                                             <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                                                <label for="titleInput" class="block text-gray-700 text-sm font-bold mb-2">Question {{ $iQuestion + 1 }}</label>
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Question {{ $iQuestion + 1 }}</label>
                                                 <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.content">
                                                 @error('content') <span class="text-red-500">{{ $question['content'] }}</span>@enderror
                                             </div>
                                             <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
-                                                <label for="titleInput" class="block text-gray-700 text-sm font-bold mb-2">Type</label>
-                                                <select wire:model="questions.{{$iQuestion}}.type" wire:change="changeTypeQuestion($event.target.value, {{$iQuestion}})" class="w-full leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Type</label>
+                                                <select @if ($singleSurvey && $iQuestion === 0) disabled @endif wire:model="questions.{{$iQuestion}}.type" wire:change="changeTypeQuestion($event.target.value, {{$iQuestion}})" class="w-full @if ($singleSurvey && $iQuestion === 0) bg-gray-200 @endif leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
                                                     @foreach($typeOptions as $typeOption) 
                                                         <option value="{{ $typeOption }}" class="py-1 capitalize">{{ $typeOption }}</option>
                                                     @endforeach
@@ -118,7 +160,7 @@
                                                 <!-- <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.type"> -->
                                                 @error('type') <span class="text-red-500">{{ $message }}</span>@enderror
                                             </div>
-                                            @if(count($questions) > 1)
+                                            @if(count($questions) > 1 && !($singleSurvey && $iQuestion === 0))
                                             <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
                                                 <button wire:click="$emit('triggerDeleteQuestion', {{ $iQuestion }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
                                                     Delete
@@ -127,7 +169,7 @@
                                             @endif
                                             @foreach($question['options'] as $iOption => $option)
                                                 <div class="w-full md:w-3/4 px-3 mb-6 md:mb-0 mt-4 ml-8">
-                                                    <label for="titleInput" class="block text-gray-700 text-sm font-bold mb-2">Option {{ $iOption + 1 }}</label>
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Option {{ $iOption + 1 }}</label>
                                                     <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.options.{{$iOption}}.value">
                                                     @error('content') <span class="text-red-500">{{ $option }}</span>@enderror
                                                 </div>

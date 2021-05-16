@@ -25,4 +25,8 @@ class Survey extends Model
     public function responses() {
         return $this->hasMany('App\Models\Response');
     }
+
+    public function sessions() {
+        return $this->hasMany('App\Models\SurveySession');
+    }
 }
