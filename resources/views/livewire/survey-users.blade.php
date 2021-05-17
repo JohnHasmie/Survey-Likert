@@ -25,7 +25,7 @@
                                 Survey Name
                             </th>
                             @foreach($users as $user)
-                                <th class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <th class="px-5 py-3 border-b-2 border-black bg-black text-center text-xs font-semibold text-white uppercase tracking-wider">
                                     {{ $user->name }}
                                 </th>
                             @endforeach

@@ -36,10 +36,10 @@ class ShowSurveys extends Component
         if ($this->user) {
             // Auth
             $this->surveys = Survey::with(['responses' => function($q) {
-                // $q->whereUserId($this->user->id);
+                $q->whereUserId($this->user->id);
             }, 'questions.options', 'questions.responses' => function($q) {
                 $q->whereUserId($this->user->id);
-            }, 'sessions'])->orderBy('created_at', 'desc')->paginate(8);
+            }, 'sessions'])->orderBy('title', 'ASC')->paginate(8);
         } else {
             // Guest
             $this->surveys = Survey::orderBy('created_at', 'desc')->paginate(8);

@@ -23,18 +23,20 @@ class ManageSurvey extends Component
 
     public $title;
     public $description;
+    public $totalInRight;
+    public $totalInBottom;
     public $singleSurvey;
     public $questions = [];
 
     public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea'];
     public $isOpen = 0;
 
-    public $responseOptions = ['static', 'sum', 'average'];
+    public $responseOptions = ['static'];
     public $responses = [];
 
     public function render()
     {
-        $this->surveys = Survey::with('questions.options')->orderBy('created_at', 'desc')->paginate(8);
+        $this->surveys = Survey::with('questions.options')->orderBy('title', 'ASC')->paginate(8);
         
         return view('livewire.manage-survey', [
             'surveys' => $this->surveys,
@@ -117,6 +119,11 @@ class ManageSurvey extends Component
         $this->title = '';
         $this->description = '';
         $this->questions = [];
+        $this->responses = [];
+        $this->totalInRight = 0;
+        $this->totalInBottom = 0;
+        $this->singleSurvey = 0;
+        $this->surveyId = '';
         $this->addQuestion();
     }
 
@@ -125,10 +132,13 @@ class ManageSurvey extends Component
         $this->validate([
             'title' => 'required|unique:surveys,title,'.$this->surveyId,
         ]);
+        
         $dataSurvey = [
             'title' => $this->title,
             'description' => $this->description,
             'single_survey' => $this->singleSurvey,
+            'total_in_right' => $this->totalInRight,
+            'total_in_bottom' => $this->totalInBottom,
         ];
 
         \DB::beginTransaction();
@@ -201,6 +211,8 @@ class ManageSurvey extends Component
         $this->description = $survey['description'];
         $this->responses = $survey['responses'];
         $this->singleSurvey = !!$survey['single_survey'];
+        $this->totalInRight = !!$survey['total_in_right'];
+        $this->totalInBottom = !!$survey['total_in_bottom'];
         
         $this->questions = [];
         $this->surveyId = $id;

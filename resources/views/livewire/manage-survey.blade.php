@@ -40,14 +40,14 @@
                             <tr>
                                 <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
                                     <!-- {{ Str::limit($survey->title, 25) }} -->
-                                    {{ $survey->title }}
+                                    {{ $survey->title }} - {{ $survey->description }}
                                 </td>
                                 <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
-                                    {{ count($survey->questions) }}
+                                    {{ count($survey->questions) - $survey->single_survey }}
                                 </td>
                                 <td class="px-5 py-5 bg-white text-sm @if (!$loop->last) border-gray-200 border-b @endif text-right">
                                     <div class="inline-block whitespace-no-wrap">
-                                        <button wire:click="edit({{ $survey->id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</button>
+                                        <button wire:click="$emit('triggerEdit',{{ $survey->id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</button>
                                         <button wire:click="$emit('triggerDelete',{{ $survey->id }})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Delete</button>
                                         <button wire:click="exportExcel({{ $survey }})" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Export</button>
                                     </div>
@@ -74,8 +74,8 @@
                                     <!-- Modal Title -->
                                     Create New Survey
                                 </h3>
-                                <button class="p-1 ml-auto bg-transparent border-0 text-black opacity-5 float-right text-3xl leading-none font-semibold outline-none focus:outline-none" onclick="toggleModal('modal-id')">
-                                    <span class="bg-transparent text-black opacity-5 h-6 w-6 text-2xl block outline-none focus:outline-none">
+                                <button class="p-1 ml-auto bg-white border-0 text-black float-right text-3xl leading-none font-semibold outline-none focus:outline-none" wire:click="closeModal">
+                                    <span class="bg-white text-black h-6 w-6 text-2xl block outline-none focus:outline-none">
                                         ×
                                     </span>
                                 </button>
@@ -97,9 +97,17 @@
                                             @error('description') <span class="text-red-500">{{ $message }}</span>@enderror
                                         </div>
                                         <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
-                                            <label class="inline-flex items-center mt-11">
-                                                <input value="1" wire:change="changeSingleSurvey" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                            <label class="inline-flex items-center @if($surveyId) bg-gray-500 @endif">
+                                                <input value="1" @if($surveyId) disabled @endif wire:change="changeSingleSurvey" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
                                                 <span class="ml-2 text-gray-700">Single Survey</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input value="1" wire:model="totalInRight" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Total in Right</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input value="1" wire:model="totalInBottom" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Total in Bottom</span>
                                             </label>
                                         </div>
                                     </div>
@@ -146,7 +154,12 @@
                                     @foreach($questions as $iQuestion => $question) 
                                         <div class="flex flex-wrap -mx-3 mb-6">
                                             <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                                                <label class="block text-gray-700 text-sm font-bold mb-2">Question {{ $iQuestion + 1 }}</label>
+                                                @php $index = $singleSurvey ? $iQuestion : $iQuestion + 1 @endphp
+                                                @if ($singleSurvey && $iQuestion === 0)
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Session Name</label>
+                                                @else
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Question {{ $index }}</label>
+                                                @endif
                                                 <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.content">
                                                 @error('content') <span class="text-red-500">{{ $question['content'] }}</span>@enderror
                                             </div>
@@ -233,6 +246,24 @@
             }).then((result) => {
                 if (result.value) {
                     @this.call('delete',surveyId)
+                } else {
+                    console.log("Canceled");
+                }
+            });
+        });
+
+        @this.on('triggerEdit', surveyId => {
+            Swal.fire({
+                title: 'Are You Sure?',
+                text: 'This action can affect of answers/responses from user',
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Edit'
+            }).then((result) => {
+                if (result.value) {
+                    @this.call('edit',surveyId)
                 } else {
                     console.log("Canceled");
                 }

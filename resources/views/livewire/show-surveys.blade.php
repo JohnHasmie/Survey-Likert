@@ -17,7 +17,7 @@
     @if ($surveys && count($surveys)>0)
         @foreach($surveys as $survey)
             @php 
-                $onlyEdit = $survey->single_survey && $user && count($survey->sessions) > 0 && ($survey->sessions[0]->user_id === auth()->user()->id || auth()->user()->isAdmin()); 
+                $onlyEdit = $survey->single_survey && $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id; 
                 $hasAnswered = $survey->single_survey && $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id !== 1;
             @endphp 
             <div class="inline-block m-5">
@@ -25,7 +25,8 @@
                     <!-- <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/152_Google_Play-512.png" class="logo-area h-4"> -->
                     <h3 class="absolute w-44 break-all py-2 text-xl font-bold font-mono">{{ $survey->title }}</h3>
                     <div class="absolute bottom-5 w-full pr-12">
-                        <p class="text-xs">{{ $survey->description }}<br>Created at {{ \Carbon\Carbon::parse($survey->created_at)->format('d/m/Y') }} </p>
+                        <p class="text-lg font-bold">{{ $survey->description }} </p>
+                        <p class="text-sm">Created at {{ \Carbon\Carbon::parse($survey->created_at)->format('d/m/Y') }}</p>
                         <div class="text-center py-2 leading-none flex justify-between w-full">
                             <span class="mr-3 inline-flex items-center leading-none text-base font-semibold py-1 ">
                                 {{ count($survey->questions) }} Questions
@@ -55,9 +56,10 @@
                             <h3 class="text-3xl font-semibold break-all">
                                 <!-- Modal Title -->
                                 {{ $currentSurvey['title'] }}
+                                <p class="px-4 text-lg">{{ $survey->description }} </p>
                             </h3>
-                            <button class="p-1 ml-auto bg-transparent border-0 text-black opacity-5 float-right text-3xl leading-none font-semibold outline-none focus:outline-none" onclick="toggleModal('modal-id')">
-                                <span class="bg-transparent text-black opacity-5 h-6 w-6 text-2xl block outline-none focus:outline-none">
+                            <button class="p-1 ml-auto bg-white border-0 text-black float-right text-3xl leading-none font-semibold outline-none focus:outline-none" wire:click="closeModal">
+                                <span class="bg-white text-black h-6 w-6 text-2xl block outline-none focus:outline-none">
                                     ×
                                 </span>
                             </button>

@@ -13,4 +13,8 @@ class SurveySession extends Model
         'user_id',
         'survey_id'
     ];
+
+    public function responses() {
+        return $this->hasMany('App\Models\Response');
+    }
 }

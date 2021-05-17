@@ -17,11 +17,11 @@ class SurveyUsers extends Component
             $q->orderBy('user_id');
             $q->groupBy('survey_id');
             $q->groupBy('user_id');
-        }])->get();
+        }])->orderBy('title', 'ASC')->get();
 
         // dd($surveys->toArray());
 
-        $users = User::get();
+        $users = User::whereNotIn('email', config('settings.admin_emails'))->get();
 
         return view('livewire.survey-users', [
             'surveys' => $surveys,
