@@ -47,9 +47,15 @@
                                         $responseExist = in_array($user->id, array_column($survey->responses->toArray(), 'user_id'))
                                     @endphp
                                     <td class="px-5 py-5 text-center">
-                                        <span class="{{ $responseExist ? 'text-green-800 bg-green-200' : 'text-red-800 bg-red-200' }} font-semibold px-2 rounded-full">
-                                            {{ $responseExist ? 'Answered' : 'Not Yet' }}
-                                        </span>
+                                        @if($responseExist)
+                                            <button wire:click="exportExcel({{ $survey }}, {{$user->id }})" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                                Answered
+                                            </button>
+                                        @else
+                                            <span class="{{ $responseExist ? 'text-green-800 bg-green-200' : 'text-red-800 bg-red-200' }} font-semibold px-2 rounded-full">
+                                                {{ $responseExist ? 'Answered' : 'Not Yet' }}
+                                            </span>
+                                        @endif
                                     </td>
                                 @endforeach
                             </tr>

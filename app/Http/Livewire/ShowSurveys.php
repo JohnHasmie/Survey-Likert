@@ -39,7 +39,9 @@ class ShowSurveys extends Component
                 $q->whereUserId($this->user->id);
             }, 'questions.options', 'questions.responses' => function($q) {
                 $q->whereUserId($this->user->id);
-            }, 'sessions'])->orderBy('title', 'ASC')->paginate(8);
+            }, 'sessions' => function($q) {
+                $q->whereUserId($this->user->id);
+            }])->orderBy('title', 'ASC')->paginate(8);
         } else {
             // Guest
             $this->surveys = Survey::orderBy('created_at', 'desc')->paginate(8);
@@ -62,26 +64,48 @@ class ShowSurveys extends Component
     }
 
     public function generateResponse($index) {
-        $this->indexSession = $index+1;
-        $this->titleSingleSurvey = $this->currentSurvey['responses'][$index]['content'];
-        $this->questions = array_slice($this->currentSurvey['questions'],1);
+        $this->indexSession = $index + 1;
+        $this->titleSingleSurvey = $this->generateTitleSingleSurvey($index);
+        // first array / question is for static response
+        $this->questions = array_slice($this->currentSurvey['questions'], 1);
 
-        $sessionId = $this->currentSurvey['sessions'][$index]['id'];
-        $_responses = Response::whereSurveySessionId($sessionId)->get()->toArray();
+        if (count($this->currentSurvey['sessions'])) {
 
-        foreach ($this->questions as $iQuestion => $question) {
-            $responses = array_values(array_filter($_responses, function ($response) use ($question) { 
-                return $response['question_id'] === $question['id']; 
-            }));
-
-            if ($question['type'] === 'checkbox') {
-                $this->responses[$question['id']] =
-                    $responses ? array_column($responses, 'content') : [];
-            } else {
-                $this->responses[$question['id']] = 
-                    $responses ? $responses[0]['content'] : '';
+            $sessionId = $this->currentSurvey['sessions'][$index]['id'];
+            $_responses = Response::whereSurveySessionId($sessionId)->get()->toArray();
+    
+            foreach ($this->questions as $iQuestion => $question) {
+                $responses = array_values(array_filter($_responses, function ($response) use ($question) { 
+                    return $response['question_id'] === $question['id']; 
+                }));
+    
+                if ($question['type'] === 'checkbox') {
+                    $this->responses[$question['id']] =
+                        $responses ? array_column($responses, 'content') : [];
+                } else {
+                    $this->responses[$question['id']] = 
+                        $responses ? $responses[0]['content'] : '';
+                }
             }
         }
+
+    }
+
+    private function generateTitleSingleSurvey($index) {
+        if (count($this->currentSurvey['responses'])) {
+            return $this->currentSurvey['responses'][$index]['content'];
+        }
+
+        $surveyId = $this->currentSurvey['id'];
+        $getRandomSession = SurveySession::whereSurveyId($surveyId)->first();
+
+        $responses = Response::whereSurveyId($surveyId)
+            ->whereUserId($getRandomSession->user_id)
+            ->whereNote('static')
+            ->get()
+            ->toArray();
+
+        return $responses[$index]['content'];
     }
 
     public function openModal()
@@ -99,51 +123,22 @@ class ShowSurveys extends Component
         \DB::beginTransaction();
         try {
             $survey = $this->currentSurvey;
-            $isNotFinish = $this->indexSession < count($survey['sessions']);
-            $userId = $this->user->id;
-
-            // Edit response if single session
-            if ($survey['single_survey']) {
-                // delete responses by survey session id
-                $sessionId = $survey['sessions'][$this->indexSession-1]['id'];
-                SurveySession::find($sessionId)->update(['user_id' => $userId]);
-
-                Response::
-                    whereHas('question', function($q) use ($survey){
-                        $q->whereSurveyId($survey['id']);
-                    })
-                    ->whereSurveySessionId($sessionId)
-                    ->update(['user_id' => $userId]);
-
-                Response::
-                    whereHas('question', function($q) use ($survey){
-                        $q->whereSurveyId($survey['id']);
-                    })
-                    ->whereSurveySessionId($sessionId)
-                    ->whereNull('note')
-                    ->delete();
-            } else {
-                $newSession = new SurveySession;
-                $newSession->survey_id = $survey['id'];
-                $newSession->user_id = $userId;
-                $newSession->save();
-    
-                $sessionId = $newSession->id;
-            }
-
+            $userId = $this->user->id;      
+            $session = $this->createOrUpdateSession($survey, $userId);
+            
             foreach ($this->responses as $questionId => $content) {
                 // content cant be null
                 if ($content) {
                     if (is_array($content)) {
-                        // Array checkbox
+                        // Array checkbox can multiple value/content
                         foreach ($content as $value) {
                             $response = new Response;
                             $response->user_id = $userId;
                             $response->question_id = $questionId;
                             $response->survey_id = $survey['id'];
-                            $response->survey_session_id = $sessionId;
+                            $response->survey_session_id = $session['id'];
                             $response->content = $value;
-        
+                            
                             $response->save();
                         }
                     } else {
@@ -151,19 +146,21 @@ class ShowSurveys extends Component
                         $response->user_id = $userId;
                         $response->question_id = $questionId;
                         $response->survey_id = $survey['id'];
-                        $response->survey_session_id = $sessionId;
+                        $response->survey_session_id = $session['id'];
                         $response->content = $content;
-    
+                        
                         $response->save();
                     }
                 }
             }
 
+            $isNotFinish = $this->indexSession < count($this->currentSurvey['sessions']);
+            
             \DB::commit();
 
             if ($survey['single_survey'] && $isNotFinish) {
                 $this->closeModal();
-                $this->startSurvey($survey, $this->indexSession);
+                $this->startSurvey($this->currentSurvey, $this->indexSession);
             } else {
                 session()->flash('message', 'Response updated successfully');
                 $this->closeModal();
@@ -174,5 +171,61 @@ class ShowSurveys extends Component
             $this->closeModal();
             session()->flash('message', $th . 'Survey created failed.');
         }
+    }
+
+    protected function createOrUpdateSession() {
+        $survey = $this->currentSurvey;
+        $userId =  $this->user->id;
+
+        if ($survey['single_survey']) {
+            $sessions = count($survey['sessions']) 
+                ? $survey['sessions'] 
+                : $this->replicateStaticSession($survey['id'], $userId);
+
+            $session = $sessions[$this->indexSession - 1];
+
+            Response::whereSurveySessionId($session['id'])
+                ->whereNull('note')
+                ->delete();
+        } else {
+            $newSession = new SurveySession;
+            $newSession->survey_id = $survey['id'];
+            $newSession->user_id = $userId;
+            $newSession->save();
+            $session = $newSession->toArray();
+        }
+
+        return $session;
+    }
+
+    protected function replicateStaticSession($surveyId, $userId) {
+        $getRandomSession = SurveySession::whereSurveyId($surveyId)->first();
+        $staticSessions = SurveySession::with(['responses' => function ($q) {
+                $q->whereNotNull('note');
+            }])
+            ->whereSurveyId($surveyId)
+            ->whereUserId($getRandomSession->user_id)
+            ->get();
+        
+        foreach ($staticSessions as $session) {
+            $replicateSession = $session->replicate();
+            $replicateSession->user_id = $userId;
+            $replicateSession->save();
+
+            
+            foreach ($replicateSession->responses as $response) {
+                $replicateResponse = $response->replicate();
+                $replicateResponse->user_id = $userId;
+                $replicateResponse->survey_session_id = $replicateSession->id;
+                $replicateResponse->save();
+            }
+        }
+
+        $this->currentSurvey['sessions'] = SurveySession::whereSurveyId($surveyId)
+            ->whereUserId($userId)
+            ->get()
+            ->toArray();
+
+        return $this->currentSurvey['sessions'];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+use App\Models\User;
 use App\Models\Survey;
 use App\Models\Question;
 use App\Models\Option;
@@ -37,9 +38,12 @@ class ManageSurvey extends Component
     public function render()
     {
         $this->surveys = Survey::with('questions.options')->orderBy('title', 'ASC')->paginate(8);
+        $users = User::whereNotIn('email', config('settings.admin_emails'))->get()->pluck('name', 'id');
+        // dd($users);
         
         return view('livewire.manage-survey', [
             'surveys' => $this->surveys,
+            'users' => $users,
         ]);
     }
 
@@ -136,7 +140,7 @@ class ManageSurvey extends Component
         $dataSurvey = [
             'title' => $this->title,
             'description' => $this->description,
-            'single_survey' => $this->singleSurvey,
+            'single_survey' => (boolean)$this->singleSurvey,
             'total_in_right' => $this->totalInRight,
             'total_in_bottom' => $this->totalInBottom,
         ];
@@ -247,8 +251,8 @@ class ManageSurvey extends Component
         session()->flash('message', 'Survey deleted successfully.');
     }
 
-    public function exportExcel($survey) {
+    public function exportExcel($survey, $userId) {
         $fileName = $survey['title'];
-        return Excel::download(new ExportSurvey($survey['id']), $fileName . '.xlsx');
+        return Excel::download(new ExportSurvey($survey['id'], $userId), $fileName . '.xlsx');
     }
 }

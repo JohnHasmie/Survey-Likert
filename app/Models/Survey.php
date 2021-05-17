@@ -11,7 +11,10 @@ class Survey extends Model
 
     protected $fillable = [
         'title',
-        'description'
+        'description',
+        'single_survey',
+        'total_in_right',
+        'total_in_bottom'
     ];
 
     public function questions() {

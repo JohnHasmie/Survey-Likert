@@ -28,7 +28,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
     protected $surveySessions;
     protected $row = 1;
 
-    public function __construct($surveyId)
+    public function __construct($surveyId, $userId)
 	{
         $this->survey = Survey::whereId($surveyId)->with(['questions.responses', 'questions.options'])->first();
         $this->sessions = SurveySession::with(['responses' => function ($q) {
@@ -38,6 +38,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
             ->whereHas('responses', function ($query) {
                 $query->whereSurveyId($this->survey->id);
             })
+            ->whereUserId($userId)
             ->get();
 	}
 
@@ -167,6 +168,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $workSheet->freezePaneByColumnAndRow(2,3);
 
                 // Content
+                $countStaticColumn = $this->survey->single_survey ? 2 : 1; 
                 $firstColumnContent = $this->survey->single_survey ? 'C' : 'B';
                 $firstRowContent = 3; // column 1 & 2 for header
                 $firstSheetContent = $firstColumnContent . $firstRowContent;
@@ -178,7 +180,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                     $firstSheet = $column . $row;
 
                     $row++;
-                    for ($iHeader = 0; $iHeader <= $countColumnHeader - $firstRowContent; $iHeader++) { 
+                    for ($iHeader = 0; $iHeader < $countColumnHeader - $countStaticColumn; $iHeader++) { 
                         if ($iHeader === $countColumnHeader - $firstRowContent) $beforeLastSheetColumn = $column . ($firstRowContent + $iSession);
                         
                         if ($totalInBottom && $iSession === count($this->sessions)-1) {

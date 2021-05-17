@@ -49,7 +49,7 @@
                                     <div class="inline-block whitespace-no-wrap">
                                         <button wire:click="$emit('triggerEdit',{{ $survey->id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</button>
                                         <button wire:click="$emit('triggerDelete',{{ $survey->id }})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Delete</button>
-                                        <button wire:click="exportExcel({{ $survey }})" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Export</button>
+                                        <button wire:click="$emit('triggerExport',{{ $survey }})" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Export</button>
                                     </div>
                                 </td>
                             </tr>
@@ -98,7 +98,7 @@
                                         </div>
                                         <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
                                             <label class="inline-flex items-center @if($surveyId) bg-gray-500 @endif">
-                                                <input value="1" @if($surveyId) disabled @endif wire:change="changeSingleSurvey" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <input value="1" @if($surveyId) disabled @endif wire:change="changeSingleSurvey()" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
                                                 <span class="ml-2 text-gray-700">Single Survey</span>
                                             </label>
                                             <label class="inline-flex items-center">
@@ -284,6 +284,30 @@
                     @this.call('deleteQuestion', iQuestion)
                 } else {
                     console.log("Canceled");
+                }
+            });
+        });
+
+        @this.on('triggerExport', survey => {
+            Swal.fire({
+                title: 'Export User Responses',
+                input: 'select',
+                inputOptions: {!! json_encode($users, 1) !!},
+                inputPlaceholder: 'Select User',
+                showCancelButton: true,
+                inputValidator: function (value) {
+                    return new Promise(function (resolve, reject) {
+                        if (value !== '') {
+                            resolve();
+                        } else {
+                            resolve('You need to select a Tier');
+                        }
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const userId = result.value
+                    @this.call('exportExcel', survey, userId)
                 }
             });
         });

@@ -7,6 +7,9 @@ use Livewire\WithPagination;
 use App\Models\Survey;
 use App\Models\User;
 
+use App\Actions\Export\ExportSurvey;
+use Excel;
+
 class SurveyUsers extends Component
 {
     use WithPagination;
@@ -27,5 +30,10 @@ class SurveyUsers extends Component
             'surveys' => $surveys,
             'users' => $users,
         ]);
+    }
+
+    public function exportExcel($survey, $userId) {
+        $fileName = $survey['title'];
+        return Excel::download(new ExportSurvey($survey['id'], $userId), $fileName . '.xlsx');
     }
 }

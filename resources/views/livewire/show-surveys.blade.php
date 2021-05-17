@@ -17,11 +17,10 @@
     @if ($surveys && count($surveys)>0)
         @foreach($surveys as $survey)
             @php 
-                $onlyEdit = $survey->single_survey && $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id; 
-                $hasAnswered = $survey->single_survey && $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id !== 1;
+                $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id
             @endphp 
             <div class="inline-block m-5">
-                <div class="relative px-8 py-4 {{ $hasAnswered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
+                <div class="relative px-8 py-4 {{ $answered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
                     <!-- <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/152_Google_Play-512.png" class="logo-area h-4"> -->
                     <h3 class="absolute w-44 break-all py-2 text-xl font-bold font-mono">{{ $survey->title }}</h3>
                     <div class="absolute bottom-5 w-full pr-12">
@@ -33,8 +32,8 @@
                             </span>
                         </div>
                         @auth
-                            <button @if (!$onlyEdit && $hasAnswered) disabled @endif wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $onlyEdit ? 'bg-green-500 hover:bg-green-700 ' : ($hasAnswered ? 'bg-gray-500 hover:bg-gray-700' : 'bg-blue-500 hover:bg-blue-700') }} text-white font-bold py-2 px-4 rounded">
-                                <span class="text-center">{{ $onlyEdit ? 'Edit Survey' : ($hasAnswered ? 'Answered' : 'Start Survey') }}</span>
+                            <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $answered && $survey->single_survey ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
+                                <span class="text-center">{{ $answered && $survey->single_survey ? 'Edit Survey' : 'Start Survey' }}</span>
                             </button>
                         @else
                             <a href="{{ route('login') }}" class="w-48 justify-center inline-flex text-white bg-yellow-500 font-bold py-2 px-4 rounded">Log in to Survey</a>
@@ -105,6 +104,7 @@
                                     @endif
                                     @if($question['type'] === 'year')
                                         <select wire:model="responses.{{ $question['id'] }}">
+                                            <option value="">Select Year</option>
                                             @for($year=date('Y'); $year>=1900; $year--)
                                                 <option value="{{ $year }}">{{ $year }}</option>
                                             @endfor
