@@ -14,7 +14,9 @@ class Survey extends Model
         'description',
         'single_survey',
         'total_in_right',
-        'total_in_bottom'
+        'total_in_bottom',
+        'average_in_right',
+        'average_in_bottom'
     ];
 
     public function questions() {
@@ -31,5 +33,9 @@ class Survey extends Model
 
     public function sessions() {
         return $this->hasMany('App\Models\SurveySession');
+    }
+
+    public function headers() {
+        return $this->hasMany('App\Models\Header');
     }
 }

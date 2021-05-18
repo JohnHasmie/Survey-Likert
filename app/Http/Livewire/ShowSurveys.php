@@ -66,8 +66,11 @@ class ShowSurveys extends Component
     public function generateResponse($index) {
         $this->indexSession = $index + 1;
         $this->titleSingleSurvey = $this->generateTitleSingleSurvey($index);
-        // first array / question is for static response
-        $this->questions = array_slice($this->currentSurvey['questions'], 1);
+        $this->questions = array_values(
+            array_filter($this->currentSurvey['questions'], function($question) {
+                return $question['type'] !== 'hidden';
+            })
+        );
 
         if (count($this->currentSurvey['sessions'])) {
 

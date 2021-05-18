@@ -91,26 +91,85 @@
                                             <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="titleInput" wire:model="title">
                                             @error('title') <span class="text-red-500">{{ $message }}</span>@enderror
                                         </div>
-                                        <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                                        <div class="w-full md:w-2/3 px-3 mb-6 md:mb-0">
                                             <label for="titleInput" class="block text-gray-700 text-sm font-bold mb-2">Description</label>
                                             <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="descriptionInput" wire:model="description">
                                             @error('description') <span class="text-red-500">{{ $message }}</span>@enderror
                                         </div>
-                                        <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
-                                            <label class="inline-flex items-center @if($surveyId) bg-gray-500 @endif">
+                                    </div>
+                                    <div class="flex flex-wrap -mx-3 mb-6">
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
+                                            <label class="inline-flex items-center @if($surveyId) bg-gray-500 px-2 rounded @endif">
                                                 <input value="1" @if($surveyId) disabled @endif wire:change="changeSingleSurvey()" wire:model="singleSurvey" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
                                                 <span class="ml-2 text-gray-700">Single Survey</span>
                                             </label>
+                                        </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
                                             <label class="inline-flex items-center">
-                                                <input value="1" wire:model="totalInRight" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <input value="1" wire:change="changeTotalOption" wire:model="totalInRight" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
                                                 <span class="ml-2 text-gray-700">Total in Right</span>
                                             </label>
+                                        </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
                                             <label class="inline-flex items-center">
-                                                <input value="1" wire:model="totalInBottom" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <input value="1" wire:change="changeTotalOption" wire:model="totalInBottom" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
                                                 <span class="ml-2 text-gray-700">Total in Bottom</span>
                                             </label>
                                         </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
+                                            <label class="inline-flex items-center">
+                                                <input value="1" wire:change="changeAverageOption" wire:model="averageInRight" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Average in Right</span>
+                                            </label>
+                                        </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
+                                            <label class="inline-flex items-center">
+                                                <input value="1" wire:change="changeAverageOption" wire:model="averageInBottom" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Average in Bottom</span>
+                                            </label>
+                                        </div>
+                                        <div class="w-full md:w-1/6 px-3 mb-3 md:mb-0">
+                                            <label class="inline-flex items-center">
+                                                <input value="1" wire:model="customHeader" wire:change="changeOptionCustomHeader" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                <span class="ml-2 text-gray-700">Custom Header</span>
+                                            </label>
+                                        </div>
                                     </div>
+                                    
+                                    @if(count($headers))
+                                        <div class="flex flex-wrap -mx-3 mb-3">
+                                            @foreach($headers as $iHeader => $header)
+                                                <div class="w-full md:w-1/2 px-3 mb-3">
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Header {{ $iHeader+1 }}</label>
+                                                    <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="headers.{{$iHeader}}.title">
+                                                    @error('title') <span class="text-red-500">{{ $message }}</span>@enderror
+                                                </div>
+                                                <div class="w-full md:w-1/6 px-3 mb-3">
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Columns</label>
+                                                    <input type="text" placeholder="capital with comma" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="headers.{{$iHeader}}.columns">
+                                                </div>
+                                                <div class="w-full md:w-1/6 px-3 mb-3">
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Level</label>
+                                                    <select wire:model="headers.{{$iHeader}}.level"class="w-full leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
+                                                        <option value="2" class="py-1 capitalize">2</option>
+                                                        <option value="3" class="py-1 capitalize">3</option>
+                                                    </select>
+                                                </div>
+                                                @if(count($headers) > 1)
+                                                    <div class="w-full md:w-1/6 px-3 md:mb-0">
+                                                        <button wire:click.prevent="deleteHeader({{ $iHeader }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                        <div class="mb-5">
+                                            <button wire:click.prevent="addHeader" type="button" class="inline-flex bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                                Add Header
+                                            </button>
+                                        </div>
+                                    @endif
 
                                     @if($singleSurvey)
                                         <span class="text-xs mb-3 font-semibold inline-block py-1 px-2 uppercase rounded text-white bg-blue-900 uppercase last:mr-0 mr-1">
@@ -133,11 +192,11 @@
                                                     @error('type') <span class="text-red-500">{{ $message }}</span>@enderror
                                                 </div>
                                                 @if(count($responses) > 1)
-                                                <div class="w-full md:w-1/5 px-3 md:mb-0">
-                                                    <button wire:click.prevent="deleteResponse({{ $iResponse }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                                                        Delete
-                                                    </button>
-                                                </div>
+                                                    <div class="w-full md:w-1/5 px-3 md:mb-0">
+                                                        <button wire:click.prevent="deleteResponse({{ $iResponse }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 @endif
                                             @endforeach
                                         </div>

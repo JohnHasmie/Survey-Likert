@@ -5,6 +5,7 @@ namespace App\Actions\Export;
 use App\Models\Survey;
 use App\Models\User;
 use App\Models\SurveySession;
+use App\Models\Header;
 
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -26,11 +27,13 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
     protected $survey;
     protected $users;
     protected $surveySessions;
+    protected $isHeaderLevel3Exist;
     protected $row = 1;
 
     public function __construct($surveyId, $userId)
 	{
-        $this->survey = Survey::whereId($surveyId)->with(['questions.responses', 'questions.options'])->first();
+        $this->survey = Survey::whereId($surveyId)->with(['questions.responses', 'questions.options', 'headers'])->first();
+        $this->isHeaderLevel3Exist = Header::whereSurveyId($this->survey->id)->whereLevel(3)->first();
         $this->sessions = SurveySession::with(['responses' => function ($q) {
                 $q->groupBy('survey_session_id');
                 $q->groupBy('survey_id');
@@ -54,8 +57,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
         $tableWidths = [];
 
         $column = 'A';
-        foreach ($questions as $question) {
-            
+        foreach ($questions as $question) {           
             if (in_array($question['type'], ['radio', 'checkbox'])) {
                 foreach ($question['options'] as $iOption => $option) {
                     $column++;
@@ -109,14 +111,18 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
             ],
         ];
 
-        // foreach ($this->users as $key => $value) {
-            //     $contentStyling[$key+3] = $styleContent;
-            // }
-            // 3 row for headers
         $contentStyling = [];
         foreach ($this->sessions as $iSession => $session) {
             $contentStyling[$iSession+3] = $styleContent;
         }
+
+        if ($this->isHeaderLevel3Exist)
+            return [
+                1 => $styleHeader,
+                2 => $styleHeader,
+                3 => $styleHeader,
+                ...$contentStyling,
+            ];    
 
         return [
             1 => $styleHeader,
@@ -135,42 +141,94 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $questions = $this->survey->questions->toArray();
                 $totalInRight = $this->survey->total_in_right;
                 $totalInBottom = $this->survey->total_in_bottom;
+                $averageInRight = $this->survey->average_in_right;
+                $averageInBottom = $this->survey->average_in_bottom;
+                $isSingleSurvey = $this->survey->single_survey;
+                
                 $workSheet = $event->sheet->getDelegate();
+                $headerLevel2 = [];
+                $headerLevel3 = [];
+                $columnHeaderLevel2 = [];
+                $columnHeaderLevel3 = [];
+                
+                // Listing custom header level 2
+                foreach ($this->survey->headers as $header) {
+                    $currentColumns = explode(',', $header->columns);
 
+                    if ($header->level === 2) {
+                        $headerLevel2[] = $header;
+                        $columnHeaderLevel2 = [...$columnHeaderLevel2, ...$currentColumns];
+                    }
+                    if ($header->level === 3) {
+                        $headerLevel3[] = $header;
+                        $columnHeaderLevel3 = [...$columnHeaderLevel3, ...$currentColumns];
+                    }
+                }
+                
                 // Headers
-                $event->sheet->mergeCells('A1:A2');
+                // merge cell header column no
+                $countRowHeader = count($headerLevel3) ? 3 : 2; 
+                $event->sheet->mergeCells('A1:A' . $countRowHeader);
                 $alphabet = 'B';
                 $countColumnHeader = 0;
+                $row = count($headerLevel3) ? '2' : '1';
                 foreach ($questions as $question) {
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
-                        $firstColumn = $alphabet . '1';
+                        $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
+
+                        $firstColumn = $alphabet . $row;
                         foreach ($question['options'] as $iOption => $option) {
                             if ($iOption !== 0) $alphabet++;
                             $countColumnHeader++;
                         }
-                        $lastColumn = $alphabet . '1';
+                        $lastColumn = $alphabet . $row;
 
                         $event->sheet->mergeCells($firstColumn . ':' . $lastColumn);
                     } else {
-                        $event->sheet->mergeCells($alphabet . '1:' . $alphabet. '2');
+                        $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
+                        
+                        $isColumnCustom = in_array($alphabet, $columnHeaderLevel2);
+                        if (!$isColumnCustom && !count($headerLevel2)) {
+                            $event->sheet->mergeCells($alphabet . '1:' . $alphabet . '2');
+                        }
                         $countColumnHeader++; 
                     }
 
                     $alphabet++;
                 }
 
-                if ($totalInRight) {
-                    $event->sheet->mergeCells($alphabet . '1:' . $alphabet. '2');
+                // apply header level 2
+                foreach ($headerLevel2 as $header2) {
+                    $currentHeader2 = explode(',', $header2->columns);
+                    $firstColumn = $currentHeader2[0];
+                    $lastColumn = array_pop($currentHeader2);
+
+                    $event->sheet->mergeCells($firstColumn . $row . ':' . $lastColumn . $row);
+                    $event->sheet->setCellValue($firstColumn . $row, $header2->title);
+                }
+
+                // apply header level 3
+                foreach ($headerLevel3 as $header3) {
+                    $currentHeader3 = explode(',', $header3->columns);
+                    $firstColumn = $currentHeader3[0];
+                    $lastColumn = array_pop($currentHeader3);
+
+                    $event->sheet->mergeCells($firstColumn . '1:' . $lastColumn . '1');
+                    $event->sheet->setCellValue($firstColumn . '1', $header3->title);
+                }
+
+                if ($totalInRight || $averageInRight) {
+                    $event->sheet->mergeCells($alphabet . '1:' . $alphabet. $countRowHeader);
                     $countColumnHeader++;
                 }
 
                 // Freeze Header
-                $workSheet->freezePaneByColumnAndRow(2,3);
+                $workSheet->freezePaneByColumnAndRow(2, $countRowHeader + 1);
 
                 // Content
-                $countStaticColumn = $this->survey->single_survey ? 2 : 1; 
-                $firstColumnContent = $this->survey->single_survey ? 'C' : 'B';
-                $firstRowContent = 3; // column 1 & 2 for header
+                $countStaticColumn = $isSingleSurvey ? 2 : 1; 
+                $firstColumnContent = $isSingleSurvey ? 'C' : 'B';
+                $firstRowContent = $countRowHeader + 1;
                 $firstSheetContent = $firstColumnContent . $firstRowContent;
 
                 $row = $firstRowContent;
@@ -186,20 +244,31 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         if ($totalInBottom && $iSession === count($this->sessions)-1) {
                             $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
                         }
+
+                        if ($averageInBottom && $iSession === count($this->sessions)-1) {
+                            $event->sheet->setCellValue($column . $row, '=AVERAGE('.$column.$firstRowContent.':'.$column.($row-1).')');
+                        }
                         
                         $column++;
                     }
                     
                     $lastSheetColumn = $column . ($firstRowContent + $iSession);
 
-                    if ($totalInBottom) {
-                        $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
-                        if ($iSession === count($this->sessions)-1)
+                    if ($totalInBottom || $averageInBottom) {
+                        if ($totalInBottom)
+                            $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
+                        if ($averageInBottom)
+                            $event->sheet->setCellValue($column . $row, '=AVERAGE('.$column.$firstRowContent.':'.$column.($row-1).')');
+                        if ($iSession === count($this->sessions)-1 && !$isSingleSurvey)
+                            $event->sheet->setCellValue('A' . $row, 'Jumlah');
+                        if ($iSession === count($this->sessions)-1 && $isSingleSurvey)
                             $event->sheet->setCellValue('B' . $row, 'Jumlah');
                     }
 
                     if ($totalInRight)
                         $event->sheet->setCellValue($lastSheetColumn, '=SUM('.$firstSheet.':'.$beforeLastSheetColumn.')');
+                    if ($averageInRight)
+                        $event->sheet->setCellValue($lastSheetColumn, '=AVERAGE('.$firstSheet.':'.$beforeLastSheetColumn.')');
 
                 }
 
@@ -241,34 +310,49 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
     public function headings(): array
     {
-        $firstHeader = ['No.'];
-        $secondHeader = [' '];
+        $headerLevel3 = ['No.'];
+        $headerLevel2 = ['No.'];
+        $headerLevel1 = [' '];
         $questions = $this->survey->questions->toArray();
         $totalInRight = $this->survey->total_in_right;
+        $averageInRight = $this->survey->average_in_right;
 
         foreach ($questions as $question) {
             if (in_array($question['type'], ['radio', 'checkbox'])) {
                 foreach ($question['options'] as $iOption => $option) {
                     if ($iOption === 0) {
-                        $firstHeader[] = $question['content'];
+                        $headerLevel2[] = $question['content'];
                     } else {
-                        $firstHeader[] = '';
+                        $headerLevel2[] = '';
                     }
-
-                    $secondHeader[] = $option['value'];
+                    
+                    $headerLevel3[] = ' ';
+                    $headerLevel1[] = $option['value'];
                 }
             } else {
-                $firstHeader[] = $question['content'];
-                $secondHeader[] = '';
+                $headerLevel3[] = ' ';
+                $headerLevel2[] = $this->isHeaderLevel3Exist ? ' ' : $question['content'];
+                $headerLevel1[] = $question['content'];
             }
         }
 
         if ($totalInRight) {
-            $firstHeader[] = 'Jumlah';
-            $secondHeader[] = ' ';
+            $headerLevel3[] = 'Jumlah';
+            $headerLevel2[] = 'Jumlah';
+            $headerLevel1[] = 'Jumlah';
         }
 
-        return [$firstHeader, $secondHeader];
+        if ($averageInRight) {
+            $headerLevel3[] = 'Rata Rata';
+            $headerLevel2[] = 'Rata Rata';
+            $headerLevel1[] = 'Rata Rata';
+        }
+
+
+        if ($this->isHeaderLevel3Exist)
+            return [$headerLevel3, $headerLevel2, $headerLevel1];
+
+        return [$headerLevel2, $headerLevel1];
     }
 
     public function map($data): array

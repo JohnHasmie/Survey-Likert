@@ -11,6 +11,7 @@ use App\Models\Question;
 use App\Models\Option;
 use App\Models\Response;
 use App\Models\SurveySession;
+use App\Models\Header;
 
 use App\Actions\Export\ExportSurvey;
 use Excel;
@@ -26,14 +27,19 @@ class ManageSurvey extends Component
     public $description;
     public $totalInRight;
     public $totalInBottom;
+    public $averageInRight;
+    public $averageInBottom;
     public $singleSurvey;
+    public $customHeader;
     public $questions = [];
 
-    public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea'];
+    public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea', 'hidden'];
     public $isOpen = 0;
 
     public $responseOptions = ['static'];
     public $responses = [];
+
+    public $headers = [];
 
     public function render()
     {
@@ -91,11 +97,50 @@ class ManageSurvey extends Component
 
     public function changeSingleSurvey() {
         if ($this->singleSurvey) {
-            $this->questions[0]['type'] = 'text';
+            $this->questions[0]['type'] = 'hidden';
             $this->addResponse();
         } else {
             $this->responses = [];
         }
+    }
+
+    public function changeOptionCustomHeader() {
+        if ($this->customHeader) {
+            $this->headers[] = [
+                'title' => '',
+                'columns' => '',
+                'level' => '2'
+            ];
+        } else {
+            $this->headers = [];
+        }
+    }
+
+    public function changeTotalOption() {
+        if ($this->totalInRight) 
+            $this->averageInRight = 0;
+        if ($this->totalInBottom)
+            $this->averageInBottom = 0;
+    }
+        
+    public function changeAverageOption() {
+        if ($this->averageInRight)
+            $this->totalInRight = 0;
+        if ($this->averageInBottom)
+            $this->totalInBottom = 0;
+    }
+
+    public function addHeader() {
+        $this->headers[] = [
+            'title' => '',
+            'columns' => '',
+            'level' => '2'
+        ];
+    }
+
+    public function deleteHeader($iHeader) {
+        unset($this->headers[$iHeader]);
+        array_values($this->headers);
     }
 
     public function addResponse() {
@@ -120,14 +165,22 @@ class ManageSurvey extends Component
     }
 
     private function resetInputFields(){
+        $this->surveyId = '';
         $this->title = '';
         $this->description = '';
+
         $this->questions = [];
-        $this->responses = [];
+
+        $this->singleSurvey = 0;
         $this->totalInRight = 0;
         $this->totalInBottom = 0;
-        $this->singleSurvey = 0;
-        $this->surveyId = '';
+        $this->averageInRight = 0;
+        $this->averageInBottom = 0;
+        $this->customHeader = 0;
+
+        $this->responses = [];
+        $this->headers = [];
+
         $this->addQuestion();
     }
 
@@ -143,11 +196,14 @@ class ManageSurvey extends Component
             'single_survey' => (boolean)$this->singleSurvey,
             'total_in_right' => $this->totalInRight,
             'total_in_bottom' => $this->totalInBottom,
+            'average_in_right' => $this->averageInRight,
+            'average_in_bottom' => $this->averageInBottom,
         ];
 
         \DB::beginTransaction();
         try {
             $survey = Survey::updateOrCreate(['id' => $this->surveyId], $dataSurvey);
+
             foreach ($this->questions as $iQuestion => $question) {
                 $currentQuestion = isset($question['id']) && $question['id'] ? Question::find($question['id']) : new Question;
                 $currentQuestion->content = $question['content']; 
@@ -159,20 +215,20 @@ class ManageSurvey extends Component
                 // get First QuestionId for insert responses static
                 if ($iQuestion == 0) $firstQuestionId = $currentQuestion->id;
 
-                // Delete all options
+                // Delete all options and insert one by one
                 $currentQuestion->options()->delete();
                 foreach ($question['options'] as $option) {
-                    // Save Option
                     $currentOption = new Option;
                     $currentOption->value = $option['value'];
                     $options = $currentQuestion->options()->save($currentOption);
                 }
             }
 
-            // Insert responses static
-            if ($this->singleSurvey) $this->storeResponses($survey->id, $firstQuestionId);
+            if ($this->singleSurvey) $this->storeStaticResponses($survey->id, $firstQuestionId);
+            if ($this->customHeader) $this->storeHeaders($survey);
 
             session()->flash('message', $this->surveyId ? 'Survey updated successfully.' : 'Survey created successfully.');
+
             $this->closeModal();
             $this->resetInputFields();
             $this->mount();
@@ -184,7 +240,18 @@ class ManageSurvey extends Component
         }
     }
 
-    private function storeResponses($surveyId, $questionId) {
+    private function storeHeaders($survey) {
+        // Header::insert($this->)
+        foreach ($this->headers as $header) {
+            $headerModel = isset($header['id']) ? Header::find($header['id']) : new Header($header);
+            $headerModel->title = $header['title'];
+            $headerModel->columns = $header['columns'];
+            $headerModel->level = $header['level'];
+            $survey->headers()->save($headerModel);
+        }
+    }
+
+    private function storeStaticResponses($surveyId, $questionId) {
         foreach ($this->responses as $response) {
             $sessionModel = isset($response['survey_session_id']) ? SurveySession::find($response['survey_session_id']) : new SurveySession;
             $responseModel = isset($response['id']) ? Response::find($response['id']) : new Response;
@@ -205,18 +272,24 @@ class ManageSurvey extends Component
 
     public function edit($id)
     {
-        $survey = Survey::with(['questions.options', 'responses' => function ($q) {
+        $survey = Survey::with(['questions.options', 'headers', 'responses' => function ($q) {
             $q->whereNotNull('note');
         }])
         ->findOrFail($id)
         ->toArray();
+
+        $this->resetInputFields();
         
         $this->title = $survey['title'];
         $this->description = $survey['description'];
         $this->responses = $survey['responses'];
+        $this->headers= $survey['headers'];
+        $this->customHeader= !!count($survey['headers']);
         $this->singleSurvey = !!$survey['single_survey'];
         $this->totalInRight = !!$survey['total_in_right'];
         $this->totalInBottom = !!$survey['total_in_bottom'];
+        $this->averageInRight = !!$survey['average_in_right'];
+        $this->averageInBottom = !!$survey['average_in_bottom'];
         
         $this->questions = [];
         $this->surveyId = $id;

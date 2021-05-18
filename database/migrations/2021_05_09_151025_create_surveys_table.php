@@ -20,6 +20,8 @@ class CreateSurveysTable extends Migration
             $table->boolean('single_survey')->default(0);
             $table->boolean('total_in_right')->default(0);
             $table->boolean('total_in_bottom')->default(0);
+            $table->boolean('average_in_right')->default(0);
+            $table->boolean('average_in_bottom')->default(0);
             $table->timestamps();
         });
     }

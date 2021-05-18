@@ -16,10 +16,11 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next)
     {
-        if ($request->expectsJson() & auth()->user()->isAdmin()) {
+        // $request->expectsJson() && 
+        if (auth()->user()->isAdmin()) {
             return $next($request);
         }
     
-        return redirect('/user/profile')->with('error',"You don't have admin access.");
+        return redirect('/dashboard')->with('error',"You don't have admin access.");
     }
 }
