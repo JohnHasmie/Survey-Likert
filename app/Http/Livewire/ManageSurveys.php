@@ -16,7 +16,7 @@ use App\Models\Header;
 use App\Actions\Export\ExportSurvey;
 use Excel;
 
-class ManageSurvey extends Component
+class ManageSurveys extends Component
 {
     use WithPagination; 
 
@@ -47,7 +47,7 @@ class ManageSurvey extends Component
         $users = User::whereNotIn('email', config('settings.admin_emails'))->get()->pluck('name', 'id');
         // dd($users);
         
-        return view('livewire.manage-survey', [
+        return view('livewire.manage-surveys', [
             'surveys' => $this->surveys,
             'users' => $users,
         ]);

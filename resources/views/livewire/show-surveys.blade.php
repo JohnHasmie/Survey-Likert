@@ -18,7 +18,8 @@
         @foreach($surveys as $survey)
             @php 
                 $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id;
-                $canEdit = ($answered && $survey->single_survey) || ($answered && auth()->user()->isAdmin());
+                $editSingle = $answered && $survey->single_survey ;
+                $editAdmin = $answered && auth()->user()->isAdmin();
             @endphp 
             <div class="inline-block m-5">
                 <div class="relative px-8 py-4 {{ $answered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
@@ -38,9 +39,13 @@
                                     <span class="text-center">Wait Response</span>
                                 </button>
                             @else
-                                <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $canEdit ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
-                                    <span class="text-center">{{ $canEdit ? 'Edit Survey' : 'Start Survey' }}</span>
-                                </button>
+                                @if (!$editAdmin)
+                                    <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $editSingle ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
+                                        <span class="text-center">{{ $editSingle ? 'Edit Survey' : 'Start Survey' }}</span>
+                                    </button>
+                                @else
+                                    <a href="{{ route('edit.survey', [$user->id, $survey->id]) }}" class="w-48 justify-center inline-flex text-white bg-green-500 hover:bg-green-700 font-bold py-2 px-4 rounded">Edit</a>
+                                @endif
                             @endif
                         @else
                             <a href="{{ route('login') }}" class="w-48 justify-center inline-flex text-white bg-yellow-500 font-bold py-2 px-4 rounded">Log in to Survey</a>

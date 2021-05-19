@@ -17,4 +17,8 @@ class SurveySession extends Model
     public function responses() {
         return $this->hasMany('App\Models\Response');
     }
+
+    public function survey() {
+        return $this->belongsTo('App\Models\Survey');
+    }
 }

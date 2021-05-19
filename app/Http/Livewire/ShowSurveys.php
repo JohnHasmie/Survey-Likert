@@ -96,7 +96,7 @@ class ShowSurveys extends Component
                         $responses ? array_column($responses, 'content') : [];
                 } else {
                     $this->responses[$question['id']] = 
-                    $responses ? $responses[0]['content'] : '';
+                        $responses ? $responses[0]['content'] : '';
                 }
             }
         }
@@ -167,7 +167,7 @@ class ShowSurveys extends Component
             
             foreach ($this->responses as $questionId => $content) {
                 // content cant be null
-                if ($content) {
+                // if ($content) {
                     if (is_array($content)) {
                         // Array checkbox can multiple value/content
                         foreach ($content as $value) {
@@ -190,7 +190,7 @@ class ShowSurveys extends Component
                         
                         $response->save();
                     }
-                }
+                // }
             }
 
             $isNotFinish = $this->indexSession < $this->countSession - $this->countHiddenSession;
