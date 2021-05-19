@@ -175,7 +175,6 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 foreach ($questions as $question) {
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
-
                         $firstColumn = $alphabet . $row;
                         foreach ($question['options'] as $iOption => $option) {
                             if ($iOption !== 0) $alphabet++;
@@ -186,9 +185,9 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         $event->sheet->mergeCells($firstColumn . ':' . $lastColumn);
                     } else {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
-                        
                         $isColumnCustom = in_array($alphabet, $columnHeaderLevel2);
-                        if (!$isColumnCustom && !count($headerLevel2)) {
+
+                        if (!$isColumnCustom) {
                             $event->sheet->mergeCells($alphabet . '1:' . $alphabet . '2');
                         }
                         $countColumnHeader++; 
@@ -205,6 +204,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
                     $event->sheet->mergeCells($firstColumn . $row . ':' . $lastColumn . $row);
                     $event->sheet->setCellValue($firstColumn . $row, $header2->title);
+
+                    foreach ($currentHeader2 as $header) {
+                        $event->sheet->getColumnDimension($header)->setAutoSize(false);
+                        $event->sheet->getColumnDimension($header)->setWidth(strlen($header2->title) / count($currentHeader2));
+                    }
                 }
 
                 // apply header level 3
@@ -332,6 +336,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
             } else {
                 $headerLevel3[] = ' ';
                 $headerLevel2[] = $this->isHeaderLevel3Exist ? ' ' : $question['alias'];
+                // $headerLevel2[] = ' ';
                 $headerLevel1[] = $question['alias'];
             }
         }
