@@ -17,7 +17,8 @@
     @if ($surveys && count($surveys)>0)
         @foreach($surveys as $survey)
             @php 
-                $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id
+                $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id;
+                $canEdit = ($answered && $survey->single_survey) || ($answered && auth()->user()->isAdmin());
             @endphp 
             <div class="inline-block m-5">
                 <div class="relative px-8 py-4 {{ $answered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
@@ -32,9 +33,15 @@
                             </span>
                         </div>
                         @auth
-                            <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $answered && $survey->single_survey ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
-                                <span class="text-center">{{ $answered && $survey->single_survey ? 'Edit Survey' : 'Start Survey' }}</span>
-                            </button>
+                            @if (auth()->user()->isAdmin() && !count($survey->sessions))
+                                <button  type="button" class="w-48 justify-center inline-flex bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                                    <span class="text-center">Wait Response</span>
+                                </button>
+                            @else
+                                <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $canEdit ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
+                                    <span class="text-center">{{ $canEdit ? 'Edit Survey' : 'Start Survey' }}</span>
+                                </button>
+                            @endif
                         @else
                             <a href="{{ route('login') }}" class="w-48 justify-center inline-flex text-white bg-yellow-500 font-bold py-2 px-4 rounded">Log in to Survey</a>
                         @endif
@@ -52,7 +59,7 @@
                 <div class="table w-full h-full py-6">
                     <div class="leading-loose bg-white md:max-w-xl mx-auto rounded">
                         <div class="flex items-start justify-between p-5 border-b border-solid border-blueGray-200 rounded-t">
-                            <h3 class="text-3xl font-semibold break-all">
+                            <h3 class="text-3xl font-semibold break-all" id="modal-title">
                                 <!-- Modal Title -->
                                 {{ $currentSurvey['title'] }}
                                 <p class="px-4 text-lg">{{ $survey->description }} </p>
@@ -63,10 +70,10 @@
                                 </span>
                             </button>
                         </div>
-                        @if($titleSingleSurvey)
+                        @if($titleSession)
                             <div class="py-2 text-center text-xl">
-                                {{ $titleSingleSurvey }}
-                                <span class="text-sm">({{ $indexSession }}/{{ $countPointResponse - $countHiddenResponse }} Steps)</span>
+                                {{ $titleSession }}
+                                <span class="text-sm">({{ $indexSession }}/{{ $countSession - $countHiddenSession }} {{ $survey->single_survey ? 'Steps' : 'Responses' }})</span>
                             </div>
                         @endif
                         <form class="max-w-xl m-4 p-4 rounded">
@@ -138,6 +145,19 @@
 @endpush
 
 @push('scripts')
+<script>
+        Livewire.on('gotoTop', () => {
+            document.getElementById("modal-title").scrollIntoView();
+        })
+        Livewire.on('disableBodyScroll', () => {
+            document.documentElement.style.overflow = 'hidden';
+            document.body.scroll = "no";
+        })
+        Livewire.on('enableBodyScroll', () => {
+            document.documentElement.style.overflow = 'scroll';
+            document.body.scroll = "yes";
+        })
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.js"></script>
 @endpush

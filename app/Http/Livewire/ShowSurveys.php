@@ -23,10 +23,11 @@ class ShowSurveys extends Component
     public $isOpen;
     public $user;
 
+    public $sessionId;
     public $indexSession = 0;
-    public $titleSingleSurvey = '';
-    public $countHiddenResponse = 0;
-    public $countPointResponse = 0;
+    public $titleSession = '';
+    public $countHiddenSession = 0;
+    public $countSession = 0;
 
     public function mount(?User $user) 
     {
@@ -58,18 +59,22 @@ class ShowSurveys extends Component
         $this->currentSurvey = $survey;
         $this->questions = $survey['questions'];
         $this->responses = [];
-        $this->titleSingleSurvey = '';
+        $this->titleSession = '';
+        $this->sessionId = '';
 
-        // Edit if single session
-        if ($survey['single_survey']) {
-            $this->generateTitleSingleSurvey($index);
+        // Edit if single session or admin
+        if ($survey['single_survey'] || auth()->user()->isAdmin()) {
             $this->generateResponse($index);
+            $this->generateTitleSession($survey['single_survey'], $index);
         }
+
+        $this->emit('gotoTop');
         $this->openModal();
     }
 
     public function generateResponse($index) {
         $this->indexSession = $index + 1;
+        
         $this->questions = array_values(
             array_filter($this->currentSurvey['questions'], function($question) {
                 return $question['type'] !== 'hidden';
@@ -78,11 +83,11 @@ class ShowSurveys extends Component
 
         if (count($this->currentSurvey['sessions'])) {
 
-            $sessionId = $this->currentSurvey['sessions'][$index]['id'];
-            $_responses = Response::whereSurveySessionId($sessionId)->get()->toArray();
+            $this->sessionId = $this->currentSurvey['sessions'][$index]['id'];
+            $this->sessionResponses = Response::whereSurveySessionId($this->sessionId)->get()->toArray();
     
             foreach ($this->questions as $iQuestion => $question) {
-                $responses = array_values(array_filter($_responses, function ($response) use ($question) { 
+                $responses = array_values(array_filter($this->sessionResponses, function ($response) use ($question) { 
                     return $response['question_id'] === $question['id']; 
                 }));
     
@@ -91,14 +96,25 @@ class ShowSurveys extends Component
                         $responses ? array_column($responses, 'content') : [];
                 } else {
                     $this->responses[$question['id']] = 
-                        $responses ? $responses[0]['content'] : '';
+                    $responses ? $responses[0]['content'] : '';
                 }
             }
         }
 
     }
 
-    private function generateTitleSingleSurvey($index) {
+    private function generateTitleSession($isSingleSurvey, $index) {
+        if ($isSingleSurvey) return $this->handleTitleSingleSurvey($index);
+
+        $this->countSession = count($this->currentSurvey['sessions']);
+        $this->titleSession = ' ';
+    }
+
+    private function handleTitle() {
+        $this->countSession = count($this->sessionResponses);
+    }
+
+    private function handleTitleSingleSurvey($index) {
         if (count($this->currentSurvey['responses'])) {
             $responses = array_filter($this->currentSurvey['responses'], function($response) { 
                 return $response['note'] !== NULL; 
@@ -114,8 +130,8 @@ class ShowSurveys extends Component
                 ->toArray();
         }
             
-        $this->countPointResponse = count($responses);
-        $this->countHiddenResponse = count(array_filter($responses, function($response) { 
+        $this->countSession = count($responses);
+        $this->countHiddenSession = count(array_filter($responses, function($response) { 
             return $response['note'] === 'hidden'; 
         }));
 
@@ -126,17 +142,19 @@ class ShowSurveys extends Component
             exit;
         }
             
-        $this->titleSingleSurvey = $responses[$index]['content'];
+        $this->titleSession = $responses[$index]['content'];
     }
 
     public function openModal()
     {
         $this->isOpen = true;
+        $this->emit('disableBodyScroll');
     }
 
     public function closeModal()
     {
         $this->isOpen = false;
+        $this->emit('enableBodyScroll');
     }
 
     public function store()
@@ -175,11 +193,11 @@ class ShowSurveys extends Component
                 }
             }
 
-            $isNotFinish = $this->indexSession < $this->countPointResponse - $this->countHiddenResponse;
+            $isNotFinish = $this->indexSession < $this->countSession - $this->countHiddenSession;
             
             \DB::commit();
 
-            if ($survey['single_survey'] && $isNotFinish) {
+            if ($this->sessionId && $isNotFinish) {
                 $this->closeModal();
                 $this->startSurvey($this->currentSurvey, $this->indexSession);
             } else {
@@ -204,17 +222,20 @@ class ShowSurveys extends Component
                 : $this->replicateStaticSession($survey['id'], $userId);
 
             $session = $sessions[$this->indexSession - 1];
-
-            Response::whereSurveySessionId($session['id'])
-                ->whereNull('note')
-                ->delete();
         } else {
-            $newSession = new SurveySession;
-            $newSession->survey_id = $survey['id'];
-            $newSession->user_id = $userId;
-            $newSession->save();
-            $session = $newSession->toArray();
+            $session = $this->sessionId ? SurveySession::find($this->sessionId) : new SurveySession;
+            $session->survey_id = $survey['id'];
+            $session->user_id = $userId;
+            $session->save();
+            
+            $session = $session->toArray();
         }
+        
+        $this->sessionId = $session['id'];
+
+        Response::whereSurveySessionId($this->sessionId)
+            ->whereNull('note')
+            ->delete();
 
         return $session;
     }

@@ -22,8 +22,6 @@ class SurveyUsers extends Component
             $q->groupBy('user_id');
         }])->orderBy('title', 'ASC')->get();
 
-        // dd($surveys->toArray());
-
         $users = User::whereNotIn('email', config('settings.admin_emails'))->get();
 
         return view('livewire.survey-users', [
