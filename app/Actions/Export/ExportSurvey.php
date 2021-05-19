@@ -207,7 +207,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
                     foreach ($currentHeader2 as $header) {
                         $event->sheet->getColumnDimension($header)->setAutoSize(false);
-                        $event->sheet->getColumnDimension($header)->setWidth(round(strlen($header2->title) + 0.1 / count($currentHeader2), 0));
+                        $event->sheet->getColumnDimension($header)->setWidth(round(strlen($header2->title) + 1 / count($currentHeader2), 0) * 0.5);
                     }
                 }
 
