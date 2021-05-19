@@ -364,7 +364,7 @@
                         if (value !== '') {
                             resolve();
                         } else {
-                            resolve('You need to select a Tier');
+                            resolve('You need to select a user');
                         }
                     });
                 }

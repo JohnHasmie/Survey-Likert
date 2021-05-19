@@ -171,25 +171,36 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $event->sheet->mergeCells('A1:A' . $countRowHeader);
                 $alphabet = 'B';
                 $countColumnHeader = 0;
-                $row = count($headerLevel3) ? '2' : '1';
+                $row = count($headerLevel3) ? 2 : 1;
                 foreach ($questions as $question) {
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
+                        $firstAlphabet = $alphabet;
                         $firstColumn = $alphabet . $row;
+                        $isColumnInCustomHeader3 = in_array($alphabet, $columnHeaderLevel3);
+
                         foreach ($question['options'] as $iOption => $option) {
                             if ($iOption !== 0) $alphabet++;
                             $countColumnHeader++;
+                            $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
                         }
+
                         $lastColumn = $alphabet . $row;
 
-                        $event->sheet->mergeCells($firstColumn . ':' . $lastColumn);
+                        if (count($headerLevel3) && !$isColumnInCustomHeader3) {
+                            $event->sheet->mergeCells($firstAlphabet . '1:' . $lastColumn);
+                        } else {
+                            $event->sheet->mergeCells($firstColumn . ':' . $lastColumn);
+                        }
                     } else {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
-                        $isColumnCustom = in_array($alphabet, $columnHeaderLevel2);
+                        $isColumnInCustomHeader2 = in_array($alphabet, $columnHeaderLevel2);
 
-                        if (!$isColumnCustom) {
-                            $event->sheet->mergeCells($alphabet . '1:' . $alphabet . '2');
+                        if (!$isColumnInCustomHeader2) {
+                            $event->sheet->mergeCells($alphabet . '1:' . $alphabet . $countRowHeader);
                         }
+
+                        
                         $countColumnHeader++; 
                     }
 
@@ -330,11 +341,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         $headerLevel2[] = '';
                     }
                     
-                    $headerLevel3[] = ' ';
+                    $headerLevel3[] = $option['value'];
                     $headerLevel1[] = $option['value'];
                 }
             } else {
-                $headerLevel3[] = ' ';
+                $headerLevel3[] = $question['alias'];
                 $headerLevel2[] = $this->isHeaderLevel3Exist ? ' ' : $question['alias'];
                 // $headerLevel2[] = ' ';
                 $headerLevel1[] = $question['alias'];
