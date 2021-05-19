@@ -200,14 +200,14 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 foreach ($headerLevel2 as $header2) {
                     $currentHeader2 = explode(',', $header2->columns);
                     $firstColumn = $currentHeader2[0];
-                    $lastColumn = array_pop($currentHeader2);
+                    $lastColumn = $currentHeader2[count($currentHeader2)-1];
 
                     $event->sheet->mergeCells($firstColumn . $row . ':' . $lastColumn . $row);
                     $event->sheet->setCellValue($firstColumn . $row, $header2->title);
 
                     foreach ($currentHeader2 as $header) {
                         $event->sheet->getColumnDimension($header)->setAutoSize(false);
-                        $event->sheet->getColumnDimension($header)->setWidth(strlen($header2->title) / count($currentHeader2));
+                        $event->sheet->getColumnDimension($header)->setWidth(round(strlen($header2->title) + 0.1 / count($currentHeader2), 0));
                     }
                 }
 
@@ -215,7 +215,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 foreach ($headerLevel3 as $header3) {
                     $currentHeader3 = explode(',', $header3->columns);
                     $firstColumn = $currentHeader3[0];
-                    $lastColumn = array_pop($currentHeader3);
+                    $lastColumn = $currentHeader3[count($currentHeader3)-1];
 
                     $event->sheet->mergeCells($firstColumn . '1:' . $lastColumn . '1');
                     $event->sheet->setCellValue($firstColumn . '1', $header3->title);
