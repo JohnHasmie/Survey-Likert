@@ -47,13 +47,13 @@
                                         </span>
                                     </td>
                                 @endforeach
-                                <td>
-                                    <button wire:click.prevent="editResponse({{ $session->id }}, {{ $session->responses }})" type="button" class="w-48 justify-center inline-flex bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                        <span class="text-center">Edit</span>
+                                <td class="text-center">
+                                    <button wire:click.prevent="editResponse({{ $session->id }}, {{ $session->responses }})" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                        Edit
                                     </button>
-                                    <button wire:click.prevent="$emit('triggerDelete',{{ $session->id }})" type="button" class="w-48 justify-center inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                                        <span class="text-center">Delete</span>
-                                    </button>
+                                    @if (!$survey->single_survey)
+                                        <buttoston>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
