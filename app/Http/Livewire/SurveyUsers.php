@@ -33,7 +33,7 @@ class SurveyUsers extends Component
     }
 
     public function exportExcel($survey, $userId) {
-        $fileName = $survey['title'];
+        $fileName = $survey['title'] . ' ' . $survey['description'];
         return Excel::download(new ExportSurvey($survey['id'], $userId), $fileName . '.xlsx');
     }
 }
