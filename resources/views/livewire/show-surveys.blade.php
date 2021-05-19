@@ -66,7 +66,7 @@
                         @if($titleSingleSurvey)
                             <div class="py-2 text-center text-xl">
                                 {{ $titleSingleSurvey }}
-                                <span class="text-sm">({{ $indexSession }}/{{ count($currentSurvey['sessions']) }} Steps)</span>
+                                <span class="text-sm">({{ $indexSession }}/{{ $countPointResponse - $countHiddenResponse }} Steps)</span>
                             </div>
                         @endif
                         <form class="max-w-xl m-4 p-4 rounded">

@@ -36,7 +36,7 @@ class ManageSurvey extends Component
     public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea', 'hidden'];
     public $isOpen = 0;
 
-    public $responseOptions = ['static'];
+    public $responseOptions = ['static', 'hidden'];
     public $responses = [];
 
     public $headers = [];
@@ -73,6 +73,7 @@ class ManageSurvey extends Component
     {
         $this->questions[] = [
             'content' => '',
+            'alias' => '',
             'type' => 'text',
             'options' => [],
         ];
@@ -207,6 +208,7 @@ class ManageSurvey extends Component
             foreach ($this->questions as $iQuestion => $question) {
                 $currentQuestion = isset($question['id']) && $question['id'] ? Question::find($question['id']) : new Question;
                 $currentQuestion->content = $question['content']; 
+                $currentQuestion->alias = $question['alias'] ? : $question['content'];
                 $currentQuestion->type = $question['type'];
 
                 // Save or Update Question
@@ -235,6 +237,7 @@ class ManageSurvey extends Component
 
             \DB::commit();
         } catch (\Throwable $th) {
+            $this->closeModal();
             session()->flash('message', $th);
             \DB::rollback();
         }
@@ -270,10 +273,16 @@ class ManageSurvey extends Component
         }
     }
 
+    public function changeQuestionContent($iQuestion) {
+        $this->questions[$iQuestion]['alias'] = $this->questions[$iQuestion]['content'];
+    }
+
     public function edit($id)
     {
-        $survey = Survey::with(['questions.options', 'headers', 'responses' => function ($q) {
+        $getRandomSession = SurveySession::whereSurveyId($id)->first();
+        $survey = Survey::with(['questions.options', 'headers', 'responses' => function ($q) use ($getRandomSession) {
             $q->whereNotNull('note');
+            $q->whereUserId(1);
         }])
         ->findOrFail($id)
         ->toArray();
@@ -309,6 +318,7 @@ class ManageSurvey extends Component
             $this->questions[] = [
                 'id' => $question['id']  ,
                 'content' => $question['content'],
+                'alias' => $question['alias'],
                 'type' => $question['type'],
                 'options' => $options,
             ];

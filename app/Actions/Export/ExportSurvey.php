@@ -321,7 +321,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
             if (in_array($question['type'], ['radio', 'checkbox'])) {
                 foreach ($question['options'] as $iOption => $option) {
                     if ($iOption === 0) {
-                        $headerLevel2[] = $question['content'];
+                        $headerLevel2[] = $question['alias'];
                     } else {
                         $headerLevel2[] = '';
                     }
@@ -331,8 +331,8 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 }
             } else {
                 $headerLevel3[] = ' ';
-                $headerLevel2[] = $this->isHeaderLevel3Exist ? ' ' : $question['content'];
-                $headerLevel1[] = $question['content'];
+                $headerLevel2[] = $this->isHeaderLevel3Exist ? ' ' : $question['alias'];
+                $headerLevel1[] = $question['alias'];
             }
         }
 

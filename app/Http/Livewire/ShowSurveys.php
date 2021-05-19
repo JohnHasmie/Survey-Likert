@@ -25,6 +25,8 @@ class ShowSurveys extends Component
 
     public $indexSession = 0;
     public $titleSingleSurvey = '';
+    public $countHiddenResponse = 0;
+    public $countPointResponse = 0;
 
     public function mount(?User $user) 
     {
@@ -59,13 +61,15 @@ class ShowSurveys extends Component
         $this->titleSingleSurvey = '';
 
         // Edit if single session
-        if ($survey['single_survey']) $this->generateResponse($index);
+        if ($survey['single_survey']) {
+            $this->generateTitleSingleSurvey($index);
+            $this->generateResponse($index);
+        }
         $this->openModal();
     }
 
     public function generateResponse($index) {
         $this->indexSession = $index + 1;
-        $this->titleSingleSurvey = $this->generateTitleSingleSurvey($index);
         $this->questions = array_values(
             array_filter($this->currentSurvey['questions'], function($question) {
                 return $question['type'] !== 'hidden';
@@ -96,19 +100,33 @@ class ShowSurveys extends Component
 
     private function generateTitleSingleSurvey($index) {
         if (count($this->currentSurvey['responses'])) {
-            return $this->currentSurvey['responses'][$index]['content'];
+            $responses = array_filter($this->currentSurvey['responses'], function($response) { 
+                return $response['note'] !== NULL; 
+            });
+        } else {
+            $surveyId = $this->currentSurvey['id'];
+            $getRandomSession = SurveySession::whereSurveyId($surveyId)->first();
+    
+            $responses = Response::whereSurveyId($surveyId)
+                ->whereUserId($getRandomSession->user_id)
+                ->whereNotNull('note')
+                ->get()
+                ->toArray();
         }
+            
+        $this->countPointResponse = count($responses);
+        $this->countHiddenResponse = count(array_filter($responses, function($response) { 
+            return $response['note'] === 'hidden'; 
+        }));
 
-        $surveyId = $this->currentSurvey['id'];
-        $getRandomSession = SurveySession::whereSurveyId($surveyId)->first();
-
-        $responses = Response::whereSurveyId($surveyId)
-            ->whereUserId($getRandomSession->user_id)
-            ->whereNote('static')
-            ->get()
-            ->toArray();
-
-        return $responses[$index]['content'];
+        if ($responses[$index]['note'] === 'hidden') {
+            if (isset($responses[$index + 1])) {
+                return $this->startSurvey($this->currentSurvey, $index + 1);
+            }
+            exit;
+        }
+            
+        $this->titleSingleSurvey = $responses[$index]['content'];
     }
 
     public function openModal()
@@ -157,7 +175,7 @@ class ShowSurveys extends Component
                 }
             }
 
-            $isNotFinish = $this->indexSession < count($this->currentSurvey['sessions']);
+            $isNotFinish = $this->indexSession < $this->countPointResponse - $this->countHiddenResponse;
             
             \DB::commit();
 

@@ -12,6 +12,7 @@ class Question extends Model
     protected $fillable = [
         'survey_id',
         'content',
+        'alias',
         'type',
         'options',
         'required',

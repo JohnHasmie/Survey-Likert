@@ -219,10 +219,15 @@
                                                 @else
                                                     <label class="block text-gray-700 text-sm font-bold mb-2">Question {{ $index }}</label>
                                                 @endif
-                                                <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.content">
+                                                <input type="text" wire:change="changeQuestionContent({{$iQuestion}})" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.content">
                                                 @error('content') <span class="text-red-500">{{ $question['content'] }}</span>@enderror
                                             </div>
-                                            <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
+                                            <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Alias</label>
+                                                <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.alias">
+                                                @error('alias') <span class="text-red-500">{{ $question['alias'] }}</span>@enderror
+                                            </div>
+                                            <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
                                                 <label class="block text-gray-700 text-sm font-bold mb-2">Type</label>
                                                 <select @if ($singleSurvey && $iQuestion === 0) disabled @endif wire:model="questions.{{$iQuestion}}.type" wire:change="changeTypeQuestion($event.target.value, {{$iQuestion}})" class="w-full @if ($singleSurvey && $iQuestion === 0) bg-gray-200 @endif leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
                                                     @foreach($typeOptions as $typeOption) 
@@ -233,11 +238,11 @@
                                                 @error('type') <span class="text-red-500">{{ $message }}</span>@enderror
                                             </div>
                                             @if(count($questions) > 1 && !($singleSurvey && $iQuestion === 0))
-                                            <div class="w-full md:w-1/4 px-3 mb-6 md:mb-0">
-                                                <button wire:click="$emit('triggerDeleteQuestion', {{ $iQuestion }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                                                    Delete
-                                                </button>
-                                            </div>
+                                                <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
+                                                    <button wire:click="$emit('triggerDeleteQuestion', {{ $iQuestion }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             @endif
                                             @foreach($question['options'] as $iOption => $option)
                                                 <div class="w-full md:w-3/4 px-3 mb-6 md:mb-0 mt-4 ml-8">
