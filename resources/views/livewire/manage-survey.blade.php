@@ -145,11 +145,11 @@
                                                     @error('title') <span class="text-red-500">{{ $message }}</span>@enderror
                                                 </div>
                                                 <div class="w-full md:w-1/6 px-3 mb-3">
-                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Columns</label>
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Columns <span class="text-xs font-semibold">(ex: B,C,D)</span></label>
                                                     <input type="text" placeholder="capital with comma" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="headers.{{$iHeader}}.columns">
                                                 </div>
                                                 <div class="w-full md:w-1/6 px-3 mb-3">
-                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Level</label>
+                                                    <label class="block text-gray-700 text-sm font-bold mb-2">Level <span class="text-xs font-semibold">(3 is top highest)</span></label>
                                                     <select wire:model="headers.{{$iHeader}}.level"class="w-full leading-tight shadow appearance-none border rounded px-3 py-2 outline-none">
                                                         <option value="2" class="py-1 capitalize">2</option>
                                                         <option value="3" class="py-1 capitalize">3</option>
@@ -223,7 +223,7 @@
                                                 @error('content') <span class="text-red-500">{{ $question['content'] }}</span>@enderror
                                             </div>
                                             <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
-                                                <label class="block text-gray-700 text-sm font-bold mb-2">Alias</label>
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Alias <span class="text-xs font-semibold">(display in excel)</span></label>
                                                 <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" wire:model="questions.{{$iQuestion}}.alias">
                                                 @error('alias') <span class="text-red-500">{{ $question['alias'] }}</span>@enderror
                                             </div>
