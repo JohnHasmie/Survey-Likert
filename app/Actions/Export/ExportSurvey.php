@@ -302,11 +302,13 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 foreach ($urlCells as $urlCell) {
                     for ($i = $firstRowContent; $i < $lastColumnContent; $i++) { 
                         $cellValue = $event->sheet->getCell($urlCell.$i)->getValue();
-                        //Call the new macro
-                        $event->sheet->setURL(
-                            $urlCell . $i,
-                            $cellValue
-                        );
+                        if ($cellValue) {
+                            //Call the new macro
+                            $event->sheet->setURL(
+                                $urlCell . $i,
+                                $cellValue
+                            );
+                        }
                     }
                 }
 

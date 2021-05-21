@@ -27,12 +27,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
         Sheet::macro('setURL', function (Sheet $sheet, string $cell, string $url) {
-            if ($url) {
-                $fileName = basename($url);
-    
-                $sheet->getCell($cell)->setValue($fileName);
-                $sheet->getCell($cell)->getHyperlink()->setUrl($url);
-            }
+            $fileName = basename($url);
+
+            $sheet->getCell($cell)->setValue($fileName);
+            $sheet->getCell($cell)->getHyperlink()->setUrl($url);
         });
     }
 }
