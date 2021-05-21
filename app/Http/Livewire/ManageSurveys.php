@@ -16,6 +16,8 @@ use App\Models\Header;
 use App\Actions\Export\ExportSurvey;
 use Excel;
 
+use Illuminate\Support\Facades\File;
+
 class ManageSurveys extends Component
 {
     use WithPagination; 
@@ -91,7 +93,11 @@ class ManageSurveys extends Component
 
     public function deleteQuestion($iQuestion)
     {
-        if (isset($this->questions[$iQuestion]['id'])) Question::find($this->questions[$iQuestion]['id'])->delete();
+        if (isset($this->questions[$iQuestion]['id'])) {
+            Question::find($this->questions[$iQuestion]['id'])->delete();
+            // delete uploaed file in thi question
+            File::deleteDirectory(storage_path('app/public/files/' . $this->surveyId . '/' . $this->questions[$iQuestion]['id']));
+        }
         unset($this->questions[$iQuestion]);
         array_values($this->questions);
     }
@@ -342,6 +348,8 @@ class ManageSurveys extends Component
         $this->surveyId = $id;
         
         Survey::find($id)->delete();
+        // delete uploaded file in deleted survey
+        File::deleteDirectory(storage_path('app/public/files/' . $id));
         session()->flash('message', 'Survey deleted successfully.');
     }
 

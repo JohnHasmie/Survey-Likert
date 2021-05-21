@@ -150,9 +150,15 @@
                                             <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
                                             @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
                                             <br>
-                                            @if (isset($responses[$question['id']]) && $responses[$question['id']] && str_contains($responses[$question['id']]->getMimeType(), 'image'))
-                                                File Preview:
-                                                <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
+                                            @if (isset($responses[$question['id']]))
+                                                @if(gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
+                                                    File Preview:
+                                                    <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
+                                                @endif
+                                                @if(gettype($responses[$question['id']]) === 'string')
+                                                    <!-- File Preview: -->
+                                                    <img class="mt-2 underline" src="{{ asset('storage/files/' . $responses[$question['id']]) }}" alt="Open in new tab to see file">
+                                                @endif
                                             @endif
                                             <div x-show="isUploading">
                                                 <progress max="100" x-bind:value="progress"></progress>

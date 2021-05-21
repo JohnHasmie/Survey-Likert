@@ -42,9 +42,17 @@
                             <tr>
                                 @foreach($session->responses as $response)
                                     <td class="px-5 py-5">
-                                        <span class="font-semibold px-2 rounded-full">
-                                            {{ $response->content }}
-                                        </span>
+                                        @if ($response->link)
+                                            <a href="{{ $response->link }}" target="_blank" class="text-sm text-gray-700 underline">
+                                                <span class="font-semibold px-2 rounded-full">
+                                                    {{ $response->content }}
+                                                </span>
+                                            </a>
+                                        @else
+                                            <span class="font-semibold px-2 rounded-full">
+                                                {{ $response->content }}
+                                            </span>
+                                        @endif
                                     </td>
                                 @endforeach
                                 <td class="text-center">
@@ -138,12 +146,13 @@
                                             @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
                                             <br>
                                             @if (isset($responses[$question['id']]))
-                                                @if (gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
+                                                @if(gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
                                                     File Preview:
                                                     <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
-                                                @else
-                                                    File Preview:
-                                                    <img src="{{ $responses[$question['id']] }}">
+                                                @endif
+                                                @if(gettype($responses[$question['id']]) === 'string')
+                                                    <!-- File Preview: -->
+                                                    <img class="mt-2 underline" src="{{ asset('storage/files/' . $responses[$question['id']]) }}" alt="Open in new tab to see file">
                                                 @endif
                                             @endif
                                             <div x-show="isUploading">

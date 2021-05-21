@@ -86,7 +86,7 @@ class ShowSurveys extends Component
         foreach ($this->currentSurvey['questions'] as $question) {
             if ($question['type'] !== 'hidden') 
                 $this->questions[] = $question;
-            if ($question['type'] == 'file') 
+            if ($question['type'] === 'file') 
                 $this->fileInputs[$question['id']] = $question['options'];
         }
     }
@@ -168,10 +168,12 @@ class ShowSurveys extends Component
         $this->isOpen = false;
         $this->emit('enableBodyScroll');
     }
-
+    
     public function store()
     {
         $rules = [];
+        $survey = $this->currentSurvey;
+        $userId = $this->user->id;      
         $this->resetValidation();
 
         foreach ($this->fileInputs as $iInput => $input) {
@@ -182,22 +184,24 @@ class ShowSurveys extends Component
             $rules[$nameInput] = $currentRule;
         }
         
-        $this->validate($rules);
+        if (!$this->sessionId) $this->validate($rules);
         
         foreach ($this->fileInputs as $iInput => $input) {
             // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();
             // $fileNameWithoutExtension = str_replace('.', ' ', $fileNameWithExtension);
             $originalName = $this->responses[$iInput]->getClientOriginalName();
             $originalNameWithTime = time() . '_' . $originalName;
-            
-            $this->responses[$iInput]->storeAs('files', $originalNameWithTime, 'public');
+
+            $destinationPath = 'files/' . $survey['id'] . '/' . $iInput . '/' . $userId;
+            $this->responses[$iInput]->storeAs($destinationPath, $originalNameWithTime, 'public');
             $this->responses[$iInput] = $originalNameWithTime;
+
+            $this->fileInputs[$iInput]['link'] = asset('storage/' . $destinationPath . '/' . $originalNameWithTime);
+            $this->fileInputs[$iInput]['file_path'] = storage_path('app/public/' . $destinationPath . '/') . $originalNameWithTime;
         }
         
         \DB::beginTransaction();
         try {
-            $survey = $this->currentSurvey;
-            $userId = $this->user->id;      
             $session = $this->createOrUpdateSession($survey, $userId);
 
             foreach ($this->responses as $questionId => $content) {
@@ -220,6 +224,12 @@ class ShowSurveys extends Component
                     $response->survey_id = $survey['id'];
                     $response->survey_session_id = $session['id'];
                     $response->content = $content;
+
+                    if (isset($this->fileInputs[$questionId])) {
+                        $response->link = $this->fileInputs[$questionId]['link'];
+                        $response->file_path = $this->fileInputs[$questionId]['file_path'];
+
+                    }
                     
                     $response->save();
                 }
@@ -265,9 +275,13 @@ class ShowSurveys extends Component
         
         $this->sessionId = $session['id'];
 
-        Response::whereSurveySessionId($this->sessionId)
-            ->whereNull('note')
-            ->delete();
+        $oldResponses = Response::whereSurveySessionId($this->sessionId)
+                ->whereNull('note')->get();
+
+        // one by one for triggering event delete in model
+        foreach ($oldResponses as $oldResponse) {
+            $oldResponse->delete();
+        }
 
         return $session;
     }

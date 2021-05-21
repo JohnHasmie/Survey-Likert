@@ -402,17 +402,17 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 foreach ($question['responses'] as $response) {
                     if ($data->id === $response['survey_session_id']) {
                         if (in_array($question['type'], ['radio', 'checkbox'])) {
-                            // if ($question['type'] === 'checkbox') {
-                            //     $responsesUser[] = in_array($response['content'], $options) ? 'Yes' : '';
-                            // } else {
-                                foreach ($options as $option) {
-                                    if ($response['content'] === $option) {
-                                        $responsesUser[] = 'Yes';        
-                                    } else {
-                                        $responsesUser[] = '';
-                                    }
+                            foreach ($options as $option) {
+                                if ($response['content'] === $option) {
+                                    $responsesUser[] = 'Yes';
+                                } else {
+                                    $responsesUser[] = '';
                                 }
-                            // }
+                            }
+                        }
+
+                        if ($question['type'] === 'file') {
+                            $responseUser = $response['link'];
                         } else {
                             $responseUser = $response['content'];
                         }

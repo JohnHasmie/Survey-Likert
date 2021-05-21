@@ -16,6 +16,20 @@ class Response extends Model
         'note',
     ];
 
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        self::deleting(function ($response) {
+            if ($response->file_path && file_exists($response->file_path)){
+                @unlink($response->file_path);
+            }
+        });
+    }
+
     public function question() {
         return $this->belongsTo('App\Models\Question');
     }

@@ -110,16 +110,24 @@ class EditResponses extends Component
             $originalName = $this->responses[$iInput]->getClientOriginalName();
             $originalNameWithTime = time() . '_' . $originalName;
 
-            $this->responses[$iInput]->storeAs('files', $originalNameWithTime, 'public');
+            $destinationPath = 'files/' . $this->survey->id . '/' . $iInput . '/' . $this->user->id;
+            $this->responses[$iInput]->storeAs($destinationPath, $originalNameWithTime, 'public');
             $this->responses[$iInput] = $originalNameWithTime;
+
+            $this->fileInputs[$iInput]['link'] = asset('storage/' . $destinationPath . '/' . $originalNameWithTime);
+            $this->fileInputs[$iInput]['file_path'] = storage_path('app/public/' . $destinationPath . '/') . $originalNameWithTime;
         }
 
         \DB::beginTransaction();
 
         try {
-            Response::whereSurveySessionId($this->sessionId)
-                ->whereNull('note')
-                ->delete();
+            $oldResponses = Response::whereSurveySessionId($this->sessionId)
+                ->whereNull('note')->get();
+
+            // one by one for triggering event delete in model
+            foreach ($oldResponses as $oldResponse) {
+                $oldResponse->delete();
+            }
 
             foreach ($this->responses as $questionId => $content) {
                 if (is_array($content)) {
@@ -141,6 +149,12 @@ class EditResponses extends Component
                     $response->survey_id = $this->survey->id;
                     $response->survey_session_id = $this->sessionId;
                     $response->content = $content;
+
+                    if (isset($this->fileInputs[$questionId])) {
+                        $response->link = $this->fileInputs[$questionId]['link'];
+                        $response->file_path = $this->fileInputs[$questionId]['file_path'];
+
+                    }
                     
                     $response->save();
                 }
