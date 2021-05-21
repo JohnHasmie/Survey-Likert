@@ -57,7 +57,6 @@ class ManageSurveys extends Component
     {
         $this->surveys = Survey::with('questions.options')->orderBy('title', 'ASC')->paginate(8);
         $users = User::whereNotIn('email', config('settings.admin_emails'))->get()->pluck('name', 'id');
-        // dd($users);
         
         return view('livewire.manage-surveys', [
             'surveys' => $this->surveys,

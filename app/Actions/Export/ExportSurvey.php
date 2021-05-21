@@ -262,7 +262,6 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         
                         if ($totalInBottom && $iSession === count($this->sessions)-1) {
                             $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
-                            dd($cell->getValue());
                         }
                         
                         if ($averageInBottom && $iSession === count($this->sessions)-1) {
