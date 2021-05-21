@@ -127,18 +127,29 @@
                                         <input type="number" wire:model="responses.{{ $question->id }}" class="w-full px-2 py-2 text-gray-700 bg-gray-100 rounded" type="text" required="">
                                     @endif
                                     @if($question['type'] === 'file')
-                                        <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
-                                        @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
-                                        <br>
-                                        @if (isset($responses[$question['id']]))
-                                            @if (gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
-                                                File Preview:
-                                                <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
-                                            @else
-                                                File Preview:
-                                                <img src="{{ $responses[$question['id']] }}">
+                                       <div
+                                            x-data="{ isUploading: false, progress: 0 }"
+                                            x-on:livewire-upload-start="isUploading = true"
+                                            x-on:livewire-upload-finish="isUploading = false"
+                                            x-on:livewire-upload-error="isUploading = false"
+                                            x-on:livewire-upload-progress="progress = $event.detail.progress"
+                                        >
+                                            <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
+                                            @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
+                                            <br>
+                                            @if (isset($responses[$question['id']]))
+                                                @if (gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
+                                                    File Preview:
+                                                    <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
+                                                @else
+                                                    File Preview:
+                                                    <img src="{{ $responses[$question['id']] }}">
+                                                @endif
                                             @endif
-                                        @endif
+                                            <div x-show="isUploading">
+                                                <progress max="100" x-bind:value="progress"></progress>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
                             @endforeach
