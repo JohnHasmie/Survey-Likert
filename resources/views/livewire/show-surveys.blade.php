@@ -141,7 +141,8 @@
                                     @endif
                                     @if($question['type'] === 'file')
                                         <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
-                                        @error('responses.' . $question['id']) <span class="error">{{ $message }}</span> @enderror
+                                        @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
+                                        <br>
                                         @if (isset($responses[$question['id']]) && $responses[$question['id']] && str_contains($responses[$question['id']]->getMimeType(), 'image'))
                                             File Preview:
                                             <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
