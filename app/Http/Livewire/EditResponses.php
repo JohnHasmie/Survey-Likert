@@ -48,6 +48,7 @@ class EditResponses extends Component
         $this->responses = [];
         $this->sessionId = $sessionId;
 
+        $this->resetValidation();
         $this->findFileInputs();
         $this->generateResponse($responses);
         $this->openModal();
@@ -91,11 +92,12 @@ class EditResponses extends Component
     public function store()
     {
         $rules = [];
+        $this->resetValidation();
 
         foreach ($this->fileInputs as $iInput => $input) {
             $nameInput = 'responses.' . $iInput;
             $extesions = array_column($input, 'value');
-            $currentRule = 'required|file|mimes:' . implode(',', $extesions);
+            $currentRule = 'file|mimes:' . implode(',', $extesions);
 
             $rules[$nameInput] = $currentRule;
         }

@@ -66,7 +66,8 @@ class ShowSurveys extends Component
         $this->responses = [];
         $this->titleSession = '';
         $this->sessionId = '';
-
+        
+        $this->resetValidation();
         $this->generateQuestion();
 
         // Edit if single session or admin
@@ -171,23 +172,24 @@ class ShowSurveys extends Component
     public function store()
     {
         $rules = [];
+        $this->resetValidation();
 
         foreach ($this->fileInputs as $iInput => $input) {
             $nameInput = 'responses.' . $iInput;
             $extesions = array_column($input, 'value');
-            $currentRule = 'required|file|mimes:' . implode(',', $extesions);
-
+            
+            $currentRule = 'file|mimes:' . implode(',', $extesions);
             $rules[$nameInput] = $currentRule;
         }
-
+        
         $this->validate($rules);
-
+        
         foreach ($this->fileInputs as $iInput => $input) {
             // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();
             // $fileNameWithoutExtension = str_replace('.', ' ', $fileNameWithExtension);
             $originalName = $this->responses[$iInput]->getClientOriginalName();
             $originalNameWithTime = time() . '_' . $originalName;
-
+            
             $this->responses[$iInput]->storeAs('files', $originalNameWithTime, 'public');
             $this->responses[$iInput] = $originalNameWithTime;
         }
