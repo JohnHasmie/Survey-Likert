@@ -33,7 +33,17 @@ class ManageSurveys extends Component
     public $customHeader;
     public $questions = [];
 
-    public $typeOptions = ['text', 'date', 'year', 'number', 'radio', 'checkbox', 'textarea', 'hidden'];
+    public $typeOptions = [
+        'text', 
+        'date', 
+        'year', 
+        'number', 
+        'radio', 
+        'checkbox', 
+        'textarea',
+        'file', 
+        'hidden'
+    ];
     public $isOpen = 0;
 
     public $responseOptions = ['static', 'hidden'];
@@ -89,7 +99,7 @@ class ManageSurveys extends Component
     public function changeTypeQuestion($type, $iQuestion) {
         $this->questions[$iQuestion]['options'] = [];
 
-        if (in_array($type, ['radio', 'checkbox'])) {
+        if (in_array($type, ['radio', 'checkbox', 'file'])) {
             $this->questions[$iQuestion]['options'][] = '';
         } else {
             $this->questions[$iQuestion]['options'] = [];
@@ -330,12 +340,14 @@ class ManageSurveys extends Component
     public function delete($id)
     {
         $this->surveyId = $id;
+        
         Survey::find($id)->delete();
         session()->flash('message', 'Survey deleted successfully.');
     }
 
     public function exportExcel($survey, $userId) {
         $fileName = $survey['title'] . ' ' . $survey['description'];
+
         return Excel::download(new ExportSurvey($survey['id'], $userId), $fileName . '.xlsx');
     }
 }

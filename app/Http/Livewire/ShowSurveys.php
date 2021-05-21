@@ -4,6 +4,7 @@ namespace App\Http\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 
 use App\Models\Survey;
 use App\Models\Response;
@@ -12,14 +13,19 @@ use App\Models\SurveySession;
 
 use Illuminate\Support\Facades\Auth;
 
+use App\Actions\Export\ExportSurvey;
+use Excel;
+
 class ShowSurveys extends Component
 {
-    use WithPagination; 
+    use WithPagination;
+    use WithFileUploads; 
 
     protected $surveys;
     public $currentSurvey;
     public $questions = [];
     public $responses = [];
+    public $fileInputs = [];
     public $isOpen;
     public $user;
 
@@ -39,12 +45,12 @@ class ShowSurveys extends Component
         if ($this->user) {
             // Auth
             $this->surveys = Survey::with(['responses' => function($q) {
-                $q->whereUserId($this->user->id);
-            }, 'questions.options', 'questions.responses' => function($q) {
-                $q->whereUserId($this->user->id);
-            }, 'sessions' => function($q) {
-                $q->whereUserId($this->user->id);
-            }])->orderBy('title', 'ASC')->paginate(8);
+                    $q->whereUserId($this->user->id);
+                }, 'questions.options', 'questions.responses' => function($q) {
+                    $q->whereUserId($this->user->id);
+                }, 'sessions' => function($q) {
+                    $q->whereUserId($this->user->id);
+                }])->orderBy('title', 'ASC')->paginate(8);
         } else {
             // Guest
             $this->surveys = Survey::orderBy('created_at', 'desc')->paginate(8);
@@ -57,10 +63,11 @@ class ShowSurveys extends Component
 
     public function startSurvey($survey, $index = 0) {
         $this->currentSurvey = $survey;
-        $this->questions = $survey['questions'];
         $this->responses = [];
         $this->titleSession = '';
         $this->sessionId = '';
+
+        $this->generateQuestion();
 
         // Edit if single session or admin
         if ($survey['single_survey'] || auth()->user()->isAdmin()) {
@@ -72,17 +79,21 @@ class ShowSurveys extends Component
         $this->openModal();
     }
 
+    public function generateQuestion() {
+        $this->questions = [];
+        $this->fileInputs = [];
+        foreach ($this->currentSurvey['questions'] as $question) {
+            if ($question['type'] !== 'hidden') 
+                $this->questions[] = $question;
+            if ($question['type'] == 'file') 
+                $this->fileInputs[$question['id']] = $question['options'];
+        }
+    }
+
     public function generateResponse($index) {
         $this->indexSession = $index + 1;
-        
-        $this->questions = array_values(
-            array_filter($this->currentSurvey['questions'], function($question) {
-                return $question['type'] !== 'hidden';
-            })
-        );
 
         if (count($this->currentSurvey['sessions'])) {
-
             $this->sessionId = $this->currentSurvey['sessions'][$index]['id'];
             $this->sessionResponses = Response::whereSurveySessionId($this->sessionId)->get()->toArray();
     
@@ -159,38 +170,57 @@ class ShowSurveys extends Component
 
     public function store()
     {
+        $rules = [];
+
+        foreach ($this->fileInputs as $iInput => $input) {
+            $nameInput = 'responses.' . $iInput;
+            $extesions = array_column($input, 'value');
+            $currentRule = 'required|file|mimes:' . implode(',', $extesions);
+
+            $rules[$nameInput] = $currentRule;
+        }
+
+        $this->validate($rules);
+
+        foreach ($this->fileInputs as $iInput => $input) {
+            // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();
+            // $fileNameWithoutExtension = str_replace('.', ' ', $fileNameWithExtension);
+            $originalName = $this->responses[$iInput]->getClientOriginalName();
+            $originalNameWithTime = time() . '_' . $originalName;
+
+            $this->responses[$iInput]->storeAs('files', $originalNameWithTime, 'public');
+            $this->responses[$iInput] = $originalNameWithTime;
+        }
+        
         \DB::beginTransaction();
         try {
             $survey = $this->currentSurvey;
             $userId = $this->user->id;      
             $session = $this->createOrUpdateSession($survey, $userId);
-            
+
             foreach ($this->responses as $questionId => $content) {
-                // content cant be null
-                // if ($content) {
-                    if (is_array($content)) {
-                        // Array checkbox can multiple value/content
-                        foreach ($content as $value) {
-                            $response = new Response;
-                            $response->user_id = $userId;
-                            $response->question_id = $questionId;
-                            $response->survey_id = $survey['id'];
-                            $response->survey_session_id = $session['id'];
-                            $response->content = $value;
-                            
-                            $response->save();
-                        }
-                    } else {
+                if (is_array($content)) {
+                    // Array checkbox can multiple value/content
+                    foreach ($content as $value) {
                         $response = new Response;
                         $response->user_id = $userId;
                         $response->question_id = $questionId;
                         $response->survey_id = $survey['id'];
                         $response->survey_session_id = $session['id'];
-                        $response->content = $content;
+                        $response->content = $value;
                         
                         $response->save();
                     }
-                // }
+                } else {
+                    $response = new Response;
+                    $response->user_id = $userId;
+                    $response->question_id = $questionId;
+                    $response->survey_id = $survey['id'];
+                    $response->survey_session_id = $session['id'];
+                    $response->content = $content;
+                    
+                    $response->save();
+                }
             }
 
             $isNotFinish = $this->indexSession < $this->countSession - $this->countHiddenSession;
@@ -269,5 +299,13 @@ class ShowSurveys extends Component
             ->toArray();
 
         return $this->currentSurvey['sessions'];
+    }
+
+    public function export(User $user, Survey $survey) {
+        if ((auth()->user()->id !== $user->id) && !auth()->user()->isAdmin() ) abort(404);
+
+        $fileName = $survey->title . ' ' . $survey->description;
+
+        return Excel::download(new ExportSurvey($survey->id, $user->id), $fileName . '.xlsx');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 use App\Models\Survey;
 use App\Models\SurveySession;
@@ -12,17 +13,22 @@ use App\Models\Response;
 
 class EditResponses extends Component
 {
+    use WithFileUploads; 
+
     public $user;
     public $survey;
     public $sessions;
     public $questions;
 
     public $responses = [];
+    public $fileInputs = [];
     public $sessionId;
     public $isOpen;
 
     public function mount(User $user, Survey $survey) 
     {
+        if ((auth()->user()->id !== $user->id) && !auth()->user()->isAdmin() ) abort(404);
+
         $this->user = $user;
         $this->survey = $survey;
         $this->sessions = SurveySession::whereUserId($user->id)
@@ -42,8 +48,18 @@ class EditResponses extends Component
         $this->responses = [];
         $this->sessionId = $sessionId;
 
+        $this->findFileInputs();
         $this->generateResponse($responses);
         $this->openModal();
+    }
+
+    public function findFileInputs() {
+        $this->fileInputs = [];
+
+        foreach ($this->questions as $question) {
+            if ($question['type'] == 'file') 
+                $this->fileInputs[$question['id']] = $question['options'];
+        }
     }
 
     public function generateResponse($_responses) {
@@ -74,6 +90,28 @@ class EditResponses extends Component
 
     public function store()
     {
+        $rules = [];
+
+        foreach ($this->fileInputs as $iInput => $input) {
+            $nameInput = 'responses.' . $iInput;
+            $extesions = array_column($input, 'value');
+            $currentRule = 'required|file|mimes:' . implode(',', $extesions);
+
+            $rules[$nameInput] = $currentRule;
+        }
+
+        $this->validate($rules);
+
+        foreach ($this->fileInputs as $iInput => $input) {
+            // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();
+            // $fileNameWithoutExtension = str_replace('.', ' ', $fileNameWithExtension);
+            $originalName = $this->responses[$iInput]->getClientOriginalName();
+            $originalNameWithTime = time() . '_' . $originalName;
+
+            $this->responses[$iInput]->storeAs('files', $originalNameWithTime, 'public');
+            $this->responses[$iInput] = $originalNameWithTime;
+        }
+
         \DB::beginTransaction();
 
         try {

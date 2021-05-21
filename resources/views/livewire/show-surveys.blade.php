@@ -20,15 +20,16 @@
                 $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id;
                 $editSingle = $answered && $survey->single_survey ;
                 $editAdmin = $answered && auth()->user()->isAdmin();
+                $editUser = $answered && !auth()->user()->isAdmin();
             @endphp 
             <div class="inline-block m-5">
-                <div class="relative px-8 py-4 {{ $answered ? 'bg-gray-900 text-white' : 'bg-white' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
+                <div class="relative px-8 py-4 {{ $editUser ? 'card-survey hover:bg-white hover:text-gray-600' : '' }} {{ $answered ? 'bg-gray-900 text-white' : '' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
                     <!-- <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/152_Google_Play-512.png" class="logo-area h-4"> -->
-                    <h3 class="absolute w-44 break-all py-2 text-xl font-bold font-mono">{{ $survey->title }}</h3>
-                    <div class="absolute bottom-5 w-full pr-12">
-                        <p class="text-lg font-bold">{{ $survey->description }} </p>
-                        <p class="text-sm">Created at {{ \Carbon\Carbon::parse($survey->created_at)->format('d/m/Y') }}</p>
-                        <div class="text-center py-2 leading-none flex justify-between w-full">
+                    <h3 class="content-survey absolute w-44 break-all py-2 text-xl font-bold font-mono">{{ $survey->title }}</h3>
+                    <div class="absolute bottom-5 w-56 pr-12">
+                        <p class="content-survey text-lg font-bold">{{ $survey->description }} </p>
+                        <p class="content-survey text-sm">Created at {{ \Carbon\Carbon::parse($survey->created_at)->format('d/m/Y') }}</p>
+                        <div class="content-survey text-center py-2 leading-none flex justify-between w-full">
                             <span class="mr-3 inline-flex items-center leading-none text-base font-semibold py-1 ">
                                 {{ count($survey->questions) }} Questions
                             </span>
@@ -40,17 +41,30 @@
                                 </button>
                             @else
                                 @if (!$editAdmin)
-                                    <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $editSingle ? 'bg-green-500 hover:bg-green-700 ' : 'bg-blue-500 hover:bg-blue-700' }} text-white font-bold py-2 px-4 rounded">
+                                    <button wire:click.prevent="startSurvey({{ $survey }})" type="button" class="w-48 justify-center inline-flex {{ $editSingle ? 'bg-green-500 hover:bg-green-700 ' : 'bg-yellow-500 hover:bg-yellow-600' }} text-white font-bold py-2 px-4 rounded">
                                         <span class="text-center">{{ $editSingle ? 'Edit Survey' : 'Start Survey' }}</span>
                                     </button>
                                 @else
-                                    <a href="{{ route('edit.survey', [$user->id, $survey->id]) }}" class="w-48 justify-center inline-flex text-white bg-green-500 hover:bg-green-700 font-bold py-2 px-4 rounded">Edit</a>
+                                    <a href="{{ route('edit.survey', [$user->id, $survey->id]) }}" class="w-48 justify-center inline-flex text-white bg-green-500 hover:bg-green-700 font-bold py-2 px-4 rounded">Show Response</a>
                                 @endif
                             @endif
                         @else
                             <a href="{{ route('login') }}" class="w-48 justify-center inline-flex text-white bg-yellow-500 font-bold py-2 px-4 rounded">Log in to Survey</a>
                         @endif
                     </div>
+                    @auth
+                        <div class="action-survey absolute top-24 left-12 opacity-0 fd-sh group-hover:opacity-100">
+                            <!-- <span class="text-3xl font-bold text-black tracking-wider leading-relaxed font-sans">Paris city of light</span>  -->
+                            <div class="pt-8 text-center">
+                                <a href="{{ route('edit.survey', [$user->id, $survey->id]) }}" class="mr-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                    Show
+                                </a>
+                                <a href="{{ route('export.survey', [$user->id, $survey->id]) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                    Export
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endforeach
@@ -125,6 +139,14 @@
                                     @if($question['type'] === 'number')
                                         <input type="number" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-2 text-gray-700 bg-gray-100 rounded" type="text" required="">
                                     @endif
+                                    @if($question['type'] === 'file')
+                                        <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
+                                        @error('responses.' . $question['id']) <span class="error">{{ $message }}</span> @enderror
+                                        @if (isset($responses[$question['id']]) && $responses[$question['id']] && str_contains($responses[$question['id']]->getMimeType(), 'image'))
+                                            File Preview:
+                                            <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
+                                        @endif
+                                    @endif
                                 </div>
                             @endforeach
                         </form>
@@ -147,6 +169,21 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css">
+<style>
+    .card-survey:hover {
+        background-image:
+            linear-gradient(to right,
+            rgba(126, 213, 111, 0.801), hsla(160, 64%, 43%, 0.801) )
+    }
+
+    .card-survey:hover .content-survey {
+        opacity: 0.25;
+    }
+
+    .card-survey:hover .action-survey {
+        opacity: 1;
+    }
+</style>
 @endpush
 
 @push('scripts')

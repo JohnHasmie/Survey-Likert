@@ -22,12 +22,16 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
+    Route::prefix('survey')->group(function () {
+        Route::get('/edit/{user}/{survey}', App\Http\Livewire\EditResponses::class)->name('edit.survey');
+        Route::get('/export/{user}/{survey}', [App\Http\Livewire\ShowSurveys::class, 'export'])->name('export.survey');
+    });
+
     Route::middleware('is_admin')->group(function () {
         Route::prefix('survey')->group(function () {
             Route::get('/list', App\Http\Livewire\SurveyUsers::class)->name('survey.list');
             Route::get('/manage', App\Http\Livewire\ManageSurveys::class)->name('survey.manage');
             Route::get('/user/{user}', App\Http\Livewire\ShowSurveys::class)->name('user.surveys');
-            Route::get('/edit/{user}/{survey}', App\Http\Livewire\EditResponses::class)->name('edit.survey');
         });
     });
 });

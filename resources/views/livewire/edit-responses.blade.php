@@ -52,7 +52,7 @@
                                         Edit
                                     </button>
                                     @if (!$survey->single_survey)
-                                        <button wire:click.prevent="$emit('triggerDelete',{{ $session->id }})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                        <button wire:click.prevent="$emit('triggerDelete',{{ $session->id }})" class="mr-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
                                             Delete
                                         </button>
                                     @endif
@@ -125,6 +125,20 @@
                                     @endif
                                     @if($question->type === 'number')
                                         <input type="number" wire:model="responses.{{ $question->id }}" class="w-full px-2 py-2 text-gray-700 bg-gray-100 rounded" type="text" required="">
+                                    @endif
+                                    @if($question['type'] === 'file')
+                                        <input type="file" wire:model="responses.{{ $question['id'] }}" class="w-full px-2 py-1 text-gray-700 bg-gray-100 rounded border border-gray-500" type="text" required="">
+                                        @error('responses.' . $question['id']) <span class="text-red-500">{{ $message }}</span> @enderror
+                                        <br>
+                                        @if (isset($responses[$question['id']]))
+                                            @if (gettype($responses[$question['id']]) !== 'string' && str_contains($responses[$question['id']]->getMimeType(), 'image'))
+                                                File Preview:
+                                                <img src="{{ $responses[$question['id']]->temporaryUrl() }}">
+                                            @else
+                                                File Preview:
+                                                <img src="{{ $responses[$question['id']] }}">
+                                            @endif
+                                        @endif
                                     @endif
                                 </div>
                             @endforeach

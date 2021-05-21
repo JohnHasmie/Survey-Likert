@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use \Maatwebsite\Excel\Sheet;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(191);
+        Sheet::macro('setURL', function (Sheet $sheet, string $cell, string $url) {
+            $sheet->getCell($cell)->getHyperlink()->setUrl(asset('storage/files/' . $url));
+        });
     }
 }

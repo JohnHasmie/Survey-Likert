@@ -146,6 +146,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $isSingleSurvey = $this->survey->single_survey;
                 
                 $workSheet = $event->sheet->getDelegate();
+                $urlCells = [];
                 $headerLevel2 = [];
                 $headerLevel3 = [];
                 $columnHeaderLevel2 = [];
@@ -172,6 +173,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $alphabet = 'B';
                 $countColumnHeader = 0;
                 $row = count($headerLevel3) ? 2 : 1;
+
                 foreach ($questions as $question) {
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
@@ -200,7 +202,8 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                             $event->sheet->mergeCells($alphabet . '1:' . $alphabet . $countRowHeader);
                         }
 
-                        
+                        if ($question['type'] === 'file') $urlCells[] = $alphabet;
+
                         $countColumnHeader++; 
                     }
 
@@ -248,6 +251,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
                 $row = $firstRowContent;
                 $column = $firstColumnContent;
+
                 foreach ($this->sessions as $iSession => $session) {
                     $column = $firstColumnContent;
                     $firstSheet = $column . $row;
@@ -258,11 +262,14 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         
                         if ($totalInBottom && $iSession === count($this->sessions)-1) {
                             $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
+                            dd($cell->getValue());
                         }
-
+                        
                         if ($averageInBottom && $iSession === count($this->sessions)-1) {
                             $event->sheet->setCellValue($column . $row, '=AVERAGE('.$column.$firstRowContent.':'.$column.($row-1).')');
                         }
+                        
+                        $cell = $event->sheet->getCell($column.$row);
                         
                         $column++;
                     }
@@ -287,10 +294,21 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
                 }
 
-                
                 $lastColumnContent = $row;
                 $lastRowContent = $column;
                 $lastSheetContent = $column . $row;
+
+                // hyperlinks
+                foreach ($urlCells as $urlCell) {
+                    for ($i = $firstRowContent; $i < $lastColumnContent; $i++) { 
+                        $cellValue = $event->sheet->getCell($urlCell.$i)->getValue();
+                        //Call the new macro
+                        $event->sheet->setURL(
+                            $urlCell . $i,
+                            $cellValue
+                        );
+                    }
+                }
 
                 $styleContent = [
                     'font' => [
@@ -383,10 +401,10 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $options = array_column($question['options'], 'value');
                 foreach ($question['responses'] as $response) {
                     if ($data->id === $response['survey_session_id']) {
-                        if ($options && count($options) > 0) {
-                            if ($question['type'] === 'checkbox') {
-                                $responsesUser[] = \in_array($response['content'], $options) ? 'Yes' : '';
-                            } else {
+                        if (in_array($question['type'], ['radio', 'checkbox'])) {
+                            // if ($question['type'] === 'checkbox') {
+                            //     $responsesUser[] = in_array($response['content'], $options) ? 'Yes' : '';
+                            // } else {
                                 foreach ($options as $option) {
                                     if ($response['content'] === $option) {
                                         $responsesUser[] = 'Yes';        
@@ -394,7 +412,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                                         $responsesUser[] = '';
                                     }
                                 }
-                            }
+                            // }
                         } else {
                             $responseUser = $response['content'];
                         }
