@@ -152,7 +152,7 @@
                                                 @endif
                                                 @if(gettype($responses[$question['id']]) === 'string')
                                                     <!-- File Preview: -->
-                                                    <img class="mt-2 underline" src="{{ asset('storage/files/' . $responses[$question['id']]) }}" alt="Open in new tab to see file">
+                                                    <img class="mt-2 underline" src="{{ asset('storage/files/' . $survey->id . '/' . $question['id'] . '/' . $user->id . '/' . $responses[$question['id']]) }}" alt="Open in new tab to see file">
                                                 @endif
                                             @endif
                                             <div x-show="isUploading">
