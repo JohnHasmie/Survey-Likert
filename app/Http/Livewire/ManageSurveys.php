@@ -48,7 +48,7 @@ class ManageSurveys extends Component
     ];
     public $isOpen = 0;
 
-    public $responseOptions = ['static', 'hidden'];
+    public $responseOptions = ['static', 'hidden', 'next point'];
     public $responses = [];
 
     public $headers = [];
@@ -235,9 +235,11 @@ class ManageSurveys extends Component
                 // Delete all options and insert one by one
                 $currentQuestion->options()->delete();
                 foreach ($question['options'] as $option) {
-                    $currentOption = new Option;
-                    $currentOption->value = $option['value'];
-                    $options = $currentQuestion->options()->save($currentOption);
+                    if (isset($option['value']) && $option['value']) {
+                        $currentOption = new Option;
+                        $currentOption->value = $option['value'];
+                        $options = $currentQuestion->options()->save($currentOption);
+                    }
                 }
             }
 

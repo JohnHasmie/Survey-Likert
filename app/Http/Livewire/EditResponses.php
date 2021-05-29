@@ -102,7 +102,7 @@ class EditResponses extends Component
             $rules[$nameInput] = $currentRule;
         }
 
-        $this->validate($rules);
+        if (count($rules)) $this->validate($rules);
 
         foreach ($this->fileInputs as $iInput => $input) {
             // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();

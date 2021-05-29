@@ -92,7 +92,7 @@
                         @if($titleSession)
                             <div class="py-2 text-center text-xl">
                                 {{ $titleSession }}
-                                <span class="text-sm">({{ $indexSession }}/{{ $countSession - $countHiddenSession }} {{ $survey->single_survey ? 'Steps' : 'Responses' }})</span>
+                                <span class="text-sm">({{ $number }}/{{ $countSession - $countHiddenSession }} {{ $survey->single_survey ? 'Steps' : 'Responses' }})</span>
                             </div>
                         @endif
                         <form class="max-w-xl m-4 p-4 rounded">

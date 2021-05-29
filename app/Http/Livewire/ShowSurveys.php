@@ -31,6 +31,7 @@ class ShowSurveys extends Component
 
     public $sessionId;
     public $indexSession = 0;
+    public $number = 1;
     public $titleSession = '';
     public $countHiddenSession = 0;
     public $countSession = 0;
@@ -61,7 +62,7 @@ class ShowSurveys extends Component
         ]);
     }
 
-    public function startSurvey($survey, $index = 0) {
+    public function startSurvey($survey, $next = false) {
         $this->currentSurvey = $survey;
         $this->responses = [];
         $this->titleSession = '';
@@ -70,10 +71,15 @@ class ShowSurveys extends Component
         $this->resetValidation();
         $this->generateQuestion();
 
+        if (!$next) {
+            $this->indexSession = 0;
+            $this->number = 1;
+        }
+
         // Edit if single session or admin
         if ($survey['single_survey'] || auth()->user()->isAdmin()) {
-            $this->generateResponse($index);
-            $this->generateTitleSession($survey['single_survey'], $index);
+            $this->generateResponse();
+            $this->generateTitleSession($survey['single_survey']);
         }
 
         $this->emit('gotoTop');
@@ -91,11 +97,11 @@ class ShowSurveys extends Component
         }
     }
 
-    public function generateResponse($index) {
-        $this->indexSession = $index + 1;
+    public function generateResponse() {
+        // $this->indexSession = $index + 1;
 
         if (count($this->currentSurvey['sessions'])) {
-            $this->sessionId = $this->currentSurvey['sessions'][$index]['id'];
+            $this->sessionId = $this->currentSurvey['sessions'][$this->indexSession]['id'];
             $this->sessionResponses = Response::whereSurveySessionId($this->sessionId)->get()->toArray();
     
             foreach ($this->questions as $iQuestion => $question) {
@@ -115,8 +121,8 @@ class ShowSurveys extends Component
 
     }
 
-    private function generateTitleSession($isSingleSurvey, $index) {
-        if ($isSingleSurvey) return $this->handleTitleSingleSurvey($index);
+    private function generateTitleSession($isSingleSurvey) {
+        if ($isSingleSurvey) return $this->handleTitleSingleSurvey($this->indexSession);
 
         $this->countSession = count($this->currentSurvey['sessions']);
         $this->titleSession = ' ';
@@ -126,7 +132,7 @@ class ShowSurveys extends Component
         $this->countSession = count($this->sessionResponses);
     }
 
-    private function handleTitleSingleSurvey($index) {
+    private function handleTitleSingleSurvey() {
         if (count($this->currentSurvey['responses'])) {
             $responses = array_filter($this->currentSurvey['responses'], function($response) { 
                 return $response['note'] !== NULL; 
@@ -147,14 +153,15 @@ class ShowSurveys extends Component
             return $response['note'] === 'hidden'; 
         }));
 
-        if ($responses[$index]['note'] === 'hidden') {
-            if (isset($responses[$index + 1])) {
-                return $this->startSurvey($this->currentSurvey, $index + 1);
+        if ($responses[$this->indexSession]['note'] === 'hidden') {
+            if (isset($responses[$this->indexSession + 1])) {
+                $this->indexSession++;
+                return $this->startSurvey($this->currentSurvey, true);
             }
             exit;
         }
             
-        $this->titleSession = $responses[$index]['content'];
+        $this->titleSession = $responses[$this->indexSession]['content'];
     }
 
     public function openModal()
@@ -184,7 +191,7 @@ class ShowSurveys extends Component
             $rules[$nameInput] = $currentRule;
         }
         
-        if (!$this->sessionId) $this->validate($rules);
+        if (!$this->sessionId && count($rules)) $this->validate($rules);
         
         foreach ($this->fileInputs as $iInput => $input) {
             // $fileNameWithExtension = $this->responses[$iInput]->getClientOriginalName();
@@ -240,8 +247,10 @@ class ShowSurveys extends Component
             \DB::commit();
 
             if ($this->sessionId && $isNotFinish) {
+                $this->indexSession++;
+                $this->number++;
                 $this->closeModal();
-                $this->startSurvey($this->currentSurvey, $this->indexSession);
+                $this->startSurvey($this->currentSurvey, $this->indexSession, true);
             } else {
                 session()->flash('message', 'Response updated successfully');
                 $this->closeModal();
@@ -263,7 +272,7 @@ class ShowSurveys extends Component
                 ? $survey['sessions'] 
                 : $this->replicateStaticSession($survey['id'], $userId);
 
-            $session = $sessions[$this->indexSession - 1];
+            $session = $sessions[$this->indexSession];
         } else {
             $session = $this->sessionId ? SurveySession::find($this->sessionId) : new SurveySession;
             $session->survey_id = $survey['id'];

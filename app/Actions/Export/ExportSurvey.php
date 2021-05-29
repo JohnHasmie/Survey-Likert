@@ -175,11 +175,13 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $row = count($headerLevel3) ? 2 : 1;
 
                 foreach ($questions as $question) {
+                    $isColumnInCustomHeader2 = in_array($alphabet, $columnHeaderLevel2);
+                    $isColumnInCustomHeader3 = in_array($alphabet, $columnHeaderLevel3);
+                    
                     if (in_array($question['type'], ['radio', 'checkbox'])) {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
                         $firstAlphabet = $alphabet;
                         $firstColumn = $alphabet . $row;
-                        $isColumnInCustomHeader3 = in_array($alphabet, $columnHeaderLevel3);
 
                         foreach ($question['options'] as $iOption => $option) {
                             if ($iOption !== 0) $alphabet++;
@@ -196,10 +198,16 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         }
                     } else {
                         $workSheet->getColumnDimension($alphabet)->setAutoSize(true);
-                        $isColumnInCustomHeader2 = in_array($alphabet, $columnHeaderLevel2);
 
                         if (!$isColumnInCustomHeader2) {
-                            $event->sheet->mergeCells($alphabet . '1:' . $alphabet . $countRowHeader);
+                            if ($isColumnInCustomHeader3) {
+                                $value = $event->sheet->getCell($alphabet . '3')->getValue();
+
+                                $event->sheet->setCellValue($alphabet . '2', $value);
+                                $event->sheet->mergeCells($alphabet . '2:' . $alphabet . $countRowHeader);
+                            } else {
+                                $event->sheet->mergeCells($alphabet . '1:' . $alphabet . $countRowHeader);
+                            }
                         }
 
                         if ($question['type'] === 'file') $urlCells[] = $alphabet;
@@ -392,8 +400,9 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
     public function map($data): array
     {
-        $results = [$this->row];
+        $results = [];
         $questions = $this->survey->questions->toArray();
+        $skipNumbering = false;
 
         foreach ($questions as $iQuestion => $question) {
                 $responseUser = '';
@@ -402,6 +411,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $options = array_column($question['options'], 'value');
                 foreach ($question['responses'] as $response) {
                     if ($data->id === $response['survey_session_id']) {
+                        // detect type response static
+                        if (in_array($response['note'], ['hidden', 'next point'])) {
+                            $skipNumbering = true;
+                        }
+
                         if (in_array($question['type'], ['radio', 'checkbox'])) {
                             foreach ($options as $option) {
                                 if ($response['content'] === $option) {
@@ -427,7 +441,12 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 }
         }
 
-        $this->row++;
+        if ($skipNumbering) {
+            $results = [' ', ...$results];
+        } else {
+            $results = [$this->row, ...$results];
+            $this->row++;
+        }
 
         return $results;
     }
