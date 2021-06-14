@@ -23,6 +23,10 @@
                         <tr>
                             <th
                                 class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                {{ __('No.') }}
+                            </th>
+                            <th
+                                class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider">
                                 {{ __('List Survey') }}
                             </th>
                             <th
@@ -30,14 +34,26 @@
                                 {{ __('Questions') }}
                             </th>
                             <th
-                                class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider text-right">
+                                class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider text-center">
                                 {{ __('Actions') }}
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($surveys as $survey) 
+                        @foreach($surveys as $iSurvey => $survey)
+                            @php $title = substr($survey->title, 0, 7) @endphp
+                            @if(!in_array($title, $headerGroup)) 
+                                @php array_push($headerGroup, $title) @endphp
+                                <tr>
+                                    <td colspan="4" class="px-5 py-5 bg-gray text-xl @if (!$loop->last) border-gray-200 border-b @endif">
+                                    {{ str_replace($prefixTitle, $prefixHeaderGroup, $title) }}
+                                    </td>
+                                </tr>
+                            @endif
                             <tr>
+                                <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
+                                    {{ $iSurvey+1 }}
+                                </td>
                                 <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
                                     <!-- {{ Str::limit($survey->title, 25) }} -->
                                     {{ $survey->title }} - {{ $survey->description }}
@@ -45,7 +61,7 @@
                                 <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
                                     {{ count($survey->questions) - $survey->single_survey }}
                                 </td>
-                                <td class="px-5 py-5 bg-white text-sm @if (!$loop->last) border-gray-200 border-b @endif text-right">
+                                <td class="px-5 py-5 bg-white text-sm @if (!$loop->last) border-gray-200 border-b @endif text-center">
                                     <div class="inline-block whitespace-no-wrap">
                                         <button wire:click="$emit('triggerEdit',{{ $survey->id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Edit</button>
                                         <button wire:click="$emit('triggerDelete',{{ $survey->id }})" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Delete</button>

@@ -30,6 +30,10 @@
                                 {{ __('Answered') }}
                             </th>
                             <th
+                                class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                {{ __('Progress') }}
+                            </th>
+                            <th
                                 class="px-5 py-3 border-b-2 border-black bg-black text-left text-xs font-semibold text-white uppercase tracking-wider text-right">
                                 {{ __('Action') }}
                             </th>
@@ -43,6 +47,15 @@
                                 </td>
                                 <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
                                     {{ count($user->responses) }} Survey
+                                </td>
+                                <td class="px-5 py-5 bg-white text-xxs @if (!$loop->last) border-gray-200 border-b @endif">
+                                    <div class="relative">
+                                        <div class="overflow-hidden h-3 text-xs flex rounded bg-green-200">
+                                            <div style="width:{{ (count($user->responses)/$countSurvey) * 100 }}%" class="shadow-none py-1 text-xs flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-600">
+                                                {{ round((count($user->responses)/$countSurvey) * 100) }}%
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="px-5 py-5 bg-white text-sm @if (!$loop->last) border-gray-200 border-b @endif text-right">
                                     <div class="inline-block whitespace-no-wrap">

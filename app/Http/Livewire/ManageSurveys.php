@@ -35,6 +35,10 @@ class ManageSurveys extends Component
     public $customHeader;
     public $questions = [];
 
+    public $prefixTitle = 'Tabel ';
+    public $prefixHeaderGroup = 'Kategori ';
+    public $headerGroup = [];
+
     public $typeOptions = [
         'text', 
         'date', 

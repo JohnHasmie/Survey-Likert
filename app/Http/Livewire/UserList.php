@@ -5,6 +5,7 @@ namespace App\Http\Livewire;
 use Livewire\Component;
 use App\Models\User;
 use App\Models\Response;
+use App\Models\Survey;
 use Illuminate\Support\Facades\DB;
 use Livewire\WithPagination;
 
@@ -20,9 +21,12 @@ class UserList extends Component
         }])
         ->whereNotIn('email', config('settings.admin_emails'))
         ->paginate(8);
-        
+
+        $countSurvey = Survey::count();
+
         return view('livewire.user-list', [
             'users' => $users,
+            'countSurvey' => $countSurvey
         ]);
     }
 }
