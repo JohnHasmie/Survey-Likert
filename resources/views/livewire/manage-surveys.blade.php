@@ -41,7 +41,11 @@
                     </thead>
                     <tbody>
                         @foreach($surveys as $iSurvey => $survey)
-                            @php $title = substr($survey->title, 0, 7) @endphp
+                            @php 
+                                $prefixNumber = substr($survey->title, 6, 1);
+                                $number = is_numeric($prefixNumber) ? $prefixNumber + 1 : 1;
+                                $title = $prefixTitle . ' ' . $number;
+                            @endphp
                             @if(!in_array($title, $headerGroup)) 
                                 @php array_push($headerGroup, $title) @endphp
                                 <tr>

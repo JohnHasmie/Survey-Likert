@@ -20,6 +20,7 @@ class UserList extends Component
             $q->groupBy('survey_id');
         }])
         ->whereNotIn('email', config('settings.admin_emails'))
+        ->orderByRaw('(SUBSTR(name,6,3) * 1) ASC')
         ->paginate(8);
 
         $countSurvey = Survey::count();

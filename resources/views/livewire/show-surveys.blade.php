@@ -21,7 +21,19 @@
                 $editSingle = $answered && $survey->single_survey ;
                 $editAdmin = $answered && auth()->user()->isAdmin();
                 $editUser = $answered && !auth()->user()->isAdmin();
+
+                $prefixNumber = substr($survey->title, 6, 1);
+                $number = is_numeric($prefixNumber) ? $prefixNumber + 1 : 1;
+                $title = $prefixTitle . ' ' . $number;
             @endphp 
+            @if(!in_array($title, $headerGroup)) 
+                @php array_push($headerGroup, $title) @endphp
+                <div class="text-white px-6 py-4 border-0 rounded relative mt-4 mb-2 bg-green-500">
+                    <span class="inline-block align-middle mr-8">
+                    {{ str_replace($prefixTitle, $prefixHeaderGroup, $title) }}
+                    </span>
+                </div>
+            @endif
             <div class="inline-block m-5">
                 <div class="relative px-8 py-4 {{ $editUser ? 'card-survey hover:bg-white hover:text-gray-600' : '' }} {{ $answered ? 'bg-gray-900 text-white' : '' }} border border-gray-200 w-64 h-80 max-w-xs rounded-lg shadow-md bg-white hover:shadow-xl transition-shadow duration-300 ease-in-out">
                     <!-- <img src="https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/152_Google_Play-512.png" class="logo-area h-4"> -->

@@ -36,7 +36,7 @@ class ManageSurveys extends Component
     public $questions = [];
 
     public $prefixTitle = 'Tabel ';
-    public $prefixHeaderGroup = 'Kategori ';
+    public $prefixHeaderGroup = 'Kriteria ';
     public $headerGroup = [];
 
     public $typeOptions = [
@@ -59,7 +59,10 @@ class ManageSurveys extends Component
 
     public function render()
     {
-        $this->surveys = Survey::with('questions.options')->orderBy('title', 'ASC')->paginate(8);
+        $this->surveys = Survey::with('questions.options')
+            ->orderByRaw('(SUBSTR(title,7,1) * 1) ASC')
+            ->orderBy('title', 'ASC')
+            ->paginate(8);
         $users = User::whereNotIn('email', config('settings.admin_emails'))->get()->pluck('name', 'id');
         
         return view('livewire.manage-surveys', [

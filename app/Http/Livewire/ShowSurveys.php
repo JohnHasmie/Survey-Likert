@@ -29,6 +29,10 @@ class ShowSurveys extends Component
     public $isOpen;
     public $user;
 
+    public $prefixTitle = 'Tabel ';
+    public $prefixHeaderGroup = 'Kriteria ';
+    public $headerGroup = [];
+
     public $sessionId;
     public $indexSession = 0;
     public $number = 1;
@@ -51,7 +55,10 @@ class ShowSurveys extends Component
                     $q->whereUserId($this->user->id);
                 }, 'sessions' => function($q) {
                     $q->whereUserId($this->user->id);
-                }])->orderBy('title', 'ASC')->paginate(8);
+                }])
+                ->orderByRaw('(SUBSTR(title,7,1) * 1) ASC')
+                ->orderBy('title', 'ASC')
+                ->paginate(8);
         } else {
             // Guest
             $this->surveys = Survey::orderBy('created_at', 'desc')->paginate(8);
@@ -242,7 +249,7 @@ class ShowSurveys extends Component
                 }
             }
 
-            $isNotFinish = $this->indexSession < $this->countSession - $this->countHiddenSession;
+            $isNotFinish = $this->indexSession + 1 < $this->countSession - $this->countHiddenSession;
             
             \DB::commit();
 
