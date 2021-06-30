@@ -23,8 +23,8 @@
                 $editUser = $answered && !auth()->user()->isAdmin();
 
                 $prefixNumber = substr($survey->title, 6, 1);
-                $number = is_numeric($prefixNumber) ? $prefixNumber + 1 : 1;
-                $title = $prefixTitle . ' ' . $number;
+                $numberPrefix = is_numeric($prefixNumber) ? $prefixNumber + 1 : 1;
+                $title = $prefixTitle . ' ' . $numberPrefix;
             @endphp 
             @if(!in_array($title, $headerGroup)) 
                 @php array_push($headerGroup, $title) @endphp
@@ -93,7 +93,7 @@
                             <h3 class="text-3xl font-semibold break-all" id="modal-title">
                                 <!-- Modal Title -->
                                 {{ $currentSurvey['title'] }}
-                                <p class="px-4 text-lg">{{ $survey->description }} </p>
+                                <p class="px-4 text-lg">{{ $currentSurvey['description'] }}</p>
                             </h3>
                             <button class="p-1 ml-auto bg-white border-0 text-black float-right text-3xl leading-none font-semibold outline-none focus:outline-none" wire:click="closeModal">
                                 <span class="bg-white text-black h-6 w-6 text-2xl block outline-none focus:outline-none">
