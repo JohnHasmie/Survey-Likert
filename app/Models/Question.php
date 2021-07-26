@@ -16,7 +16,8 @@ class Question extends Model
         'type',
         'options',
         'required',
-        'note'
+        'note',
+        'is_content_option'
     ];
 
     public function options() {

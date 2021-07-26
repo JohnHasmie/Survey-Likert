@@ -93,6 +93,7 @@ class ManageSurveys extends Component
             'content' => '',
             'alias' => '',
             'type' => 'text',
+            'is_content_option' => 0,
             'options' => [],
         ];
     }
@@ -232,6 +233,7 @@ class ManageSurveys extends Component
                 $currentQuestion->content = $question['content']; 
                 $currentQuestion->alias = $question['alias'] ? : $question['content'];
                 $currentQuestion->type = $question['type'];
+                $currentQuestion->is_content_option = $question['is_content_option'] ? : false;
 
                 // Save or Update Question
                 $currentQuestion = $survey->questions()->save($currentQuestion);
@@ -344,6 +346,7 @@ class ManageSurveys extends Component
                 'content' => $question['content'],
                 'alias' => $question['alias'],
                 'type' => $question['type'],
+                'is_content_option' => $question['is_content_option'],
                 'options' => $options,
             ];
         }

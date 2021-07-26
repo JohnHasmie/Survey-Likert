@@ -409,7 +409,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                 $responsesUser = [];
 
                 $options = array_column($question['options'], 'value');
-                foreach ($question['responses'] as $response) {
+                foreach ($question['responses'] as $iResponse => $response) {
                     if ($data->id === $response['survey_session_id']) {
                         // detect type response static
                         if (in_array($response['note'], ['hidden', 'next point'])) {
@@ -417,10 +417,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         }
 
                         if (in_array($question['type'], ['radio', 'checkbox'])) {
-                            foreach ($options as $option) {
+                            foreach ($options as $iOption => $option) {
                                 if ($response['content'] === $option) {
-                                    $responsesUser[] = 'Yes';
-                                } else {
+                                    $responseInRow = $question['is_content_option'] ? $response['content'] : 'V';
+                                    $responsesUser[] = $responseInRow;
+                                } elseif (($iResponse === count($question['responses']) - 1) && $iOption >= $iResponse) {
                                     $responsesUser[] = '';
                                 }
                             }

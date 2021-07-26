@@ -258,7 +258,15 @@
                                                 @error('type') <span class="text-red-500">{{ $message }}</span>@enderror
                                             </div>
                                             @if(count($questions) > 1 && !($singleSurvey && $iQuestion === 0))
-                                                <div class="w-full md:w-1/6 px-3 mb-6 md:mb-0">
+                                                @if(in_array($questions[$iQuestion]['type'], ['radio', 'checkbox']))
+                                                    <div class="w-full md:w-1/12 px-3 mt-8 md:mb-0">
+                                                        <label class="inline-flex items-center">
+                                                            <input value="1" wire:model="questions.{{$iQuestion}}.is_content_option" type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                                                            <span class="ml-2 text-gray-700">Content</span>
+                                                        </label>
+                                                    </div>
+                                                @endif
+                                                <div class="w-full md:w-1/12 px-3 mb-6 md:mb-0">
                                                     <button wire:click="$emit('triggerDeleteQuestion', {{ $iQuestion }})" type="button" class="mt-7 leading-tight inline-flex bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
                                                         Delete
                                                     </button>
