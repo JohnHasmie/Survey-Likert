@@ -284,9 +284,9 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                     $lastSheetColumn = $column . ($firstRowContent + $iSession);
 
                     if ($totalInBottom || $averageInBottom) {
-                        if ($totalInBottom)
+                        if ($totalInBottom && $iSession === count($this->sessions)-1)
                             $event->sheet->setCellValue($column . $row, '=SUM('.$column.$firstRowContent.':'.$column.($row-1).')');
-                        if ($averageInBottom)
+                        if ($averageInBottom && $iSession === count($this->sessions)-1)
                             $event->sheet->setCellValue($column . $row, '=AVERAGE('.$column.$firstRowContent.':'.$column.($row-1).')');
                         if ($iSession === count($this->sessions)-1 && !$isSingleSurvey)
                             $event->sheet->setCellValue('A' . $row, 'Jumlah');
@@ -403,14 +403,18 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
         $results = [];
         $questions = $this->survey->questions->toArray();
         $skipNumbering = false;
-
+        
         foreach ($questions as $iQuestion => $question) {
                 $responseUser = '';
                 $responsesUser = [];
+                $iResponse = 0;
 
                 $options = array_column($question['options'], 'value');
-                foreach ($question['responses'] as $iResponse => $response) {
-                    if ($data->id === $response['survey_session_id']) {
+                $responses = array_values(array_filter($question['responses'], function ($response) use ($data) {
+                        return $response['survey_session_id'] === $data->id;
+                    }));
+                foreach ($responses as $response) {
+                    // if ($data->id === $response['survey_session_id']) {
                         // detect type response static
                         if (in_array($response['note'], ['hidden', 'next point'])) {
                             $skipNumbering = true;
@@ -419,10 +423,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         if (in_array($question['type'], ['radio', 'checkbox'])) {
                             foreach ($options as $iOption => $option) {
                                 if ($response['content'] === $option) {
-                                    $responseInRow = $question['is_content_option'] ? $response['content'] : 'V';
-                                    $responsesUser[] = $responseInRow;
-                                } elseif (($iResponse === count($question['responses']) - 1) && $iOption >= $iResponse) {
-                                    $responsesUser[] = '';
+                                    $responseInRow = $question['is_content_option'] ? $response['content'] : $response['content'];
+                                    $responsesUser[] = $iResponse . ' ' . $responseInRow;
+                                } elseif (!isset($responses[$iResponse + 1]) && $iOption >= $iResponse) {
+                                // } elseif (!array_key_exists(($iResponse + 1), $responses) && $iOption >= $iResponse) {
+                                    $responsesUser[] = '-';
                                 }
                             }
                         }
@@ -432,7 +437,9 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         } else {
                             $responseUser = $response['content'];
                         }
-                    }
+
+                        $iResponse++;
+                    // }
                 }
 
                 if (count($responsesUser)) {
