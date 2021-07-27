@@ -423,11 +423,11 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
                         if (in_array($question['type'], ['radio', 'checkbox'])) {
                             foreach ($options as $iOption => $option) {
                                 if ($response['content'] === $option) {
-                                    $responseInRow = $question['is_content_option'] ? $response['content'] : $response['content'];
-                                    $responsesUser[] = $iResponse . ' ' . $responseInRow;
+                                    $responseInRow = $question['is_content_option'] ? $response['content'] : 'V';
+                                    $responsesUser[] = $responseInRow;
                                 } elseif (!isset($responses[$iResponse + 1]) && $iOption >= $iResponse) {
                                 // } elseif (!array_key_exists(($iResponse + 1), $responses) && $iOption >= $iResponse) {
-                                    $responsesUser[] = '-';
+                                    $responsesUser[] = '';
                                 }
                             }
                         }
