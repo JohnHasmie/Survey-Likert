@@ -411,7 +411,7 @@ class ExportSurvey implements FromCollection, WithStyles, WithColumnWidths, With
 
                 $options = array_column($question['options'], 'value');
                 $responses = array_values(array_filter($question['responses'], function ($response) use ($data) {
-                        return $response['survey_session_id'] === $data->id;
+                        return $response['survey_session_id'] == $data->id;
                     }));
                 foreach ($responses as $response) {
                     // if ($data->id === $response['survey_session_id']) {

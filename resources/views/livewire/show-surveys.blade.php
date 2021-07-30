@@ -17,7 +17,7 @@
     @if ($surveys && count($surveys)>0)
         @foreach($surveys as $survey)
             @php 
-                $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id === $user->id;
+                $answered = $user && count($survey->sessions) > 0 && $survey->sessions[0]->user_id == $user->id;
                 $editSingle = $answered && $survey->single_survey ;
                 $editAdmin = $answered && auth()->user()->isAdmin();
                 $editUser = $answered && !auth()->user()->isAdmin();
